@@ -1686,6 +1686,7 @@ namespace platf::dxgi {
       amf_cfg.high_motion_quality_boost_enable = amf_tristate(config::video.amd.amd_high_motion_quality_boost);
       amf_cfg.av1_screen_content_tools = amf_tristate(config::video.amd.amd_av1_screen_content);
       amf_cfg.av1_encoding_latency_mode = config::video.amd.amd_av1_latency_mode;
+      amf_cfg.fluid_motion = amf_tristate(config::video.amd.amd_fluid_motion);
 
       if (!amf_d3d->create_encoder(amf_cfg, client_config, colorspace, buffer_format)) {
         return false;

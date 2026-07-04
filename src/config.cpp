@@ -855,6 +855,7 @@ namespace config {
       std::nullopt,  // high_motion_quality_boost (auto)
       std::nullopt,  // av1_screen_content (auto)
       std::nullopt,  // av1_latency_mode (auto)
+      std::nullopt,  // fluid_motion (off)
     },  // amd
 
     {
@@ -1734,6 +1735,7 @@ namespace config {
     int_f(vars, "amd_high_motion_quality_boost", video.amd.amd_high_motion_quality_boost, amd::tristate_from_view);
     int_f(vars, "amd_av1_screen_content", video.amd.amd_av1_screen_content, amd::tristate_from_view);
     int_f(vars, "amd_av1_latency_mode", video.amd.amd_av1_latency_mode, amd::av1_latency_from_view);
+    int_f(vars, "amd_fluid_motion", video.amd.amd_fluid_motion, amd::tristate_from_view);
 
     int_f(vars, "vt_coder", video.vt.vt_coder, vt::coder_from_view);
     int_f(vars, "vt_software", video.vt.vt_allow_sw, vt::allow_software_from_view);
@@ -2457,6 +2459,7 @@ namespace config {
         "amd_high_motion_quality_boost",
         "amd_av1_screen_content",
         "amd_av1_latency_mode",
+        "amd_fluid_motion",
         "vt_coder",
         "vt_software",
         "vt_realtime",

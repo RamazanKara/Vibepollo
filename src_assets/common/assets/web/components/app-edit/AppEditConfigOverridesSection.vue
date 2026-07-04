@@ -958,6 +958,7 @@ const ALLOWED_OVERRIDE_KEYS = new Set<string>([
   'amd_high_motion_quality_boost',
   'amd_av1_screen_content',
   'amd_av1_latency_mode',
+  'amd_fluid_motion',
   'vt_coder',
   'vt_software',
   'vt_realtime',

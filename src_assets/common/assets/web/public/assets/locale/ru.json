@@ -290,6 +290,8 @@
     "amd_opt_enabled": "enabled",
     "amd_smart_access_video": "AMF Smart Access Video (multi-VCN)",
     "amd_smart_access_video_desc": "Lets the native AMF encoder (amdvce) spread encoding across the GPU's multiple VCN engines (AMD Smart Access Video / multi-instance encode). On cards that expose more than one encoder instance (e.g. RX 7900) this can improve latency and throughput; it has no effect on single-VCN GPUs. 'auto' leaves the driver default. Only applies to the native amdvce encoder.",
+    "amd_fluid_motion": "AMF Fluid Motion (frame interpolation)",
+    "amd_fluid_motion_desc": "Experimental. Inserts an AMD FRC-interpolated frame between each captured frame (x2), roughly doubling the streamed frame rate for smoother motion at the cost of ~1 frame of extra latency. Best when the client's display refresh is at least double the game's render rate. 'auto' leaves it off. Only applies to the native amdvce encoder.",
     "amd_usage": "Использование AMF",
     "amd_usage_desc": "Определяет базовую кодировку профиля. Все параметры, представленные ниже, переопределят поднабор пользовательского профиля, но есть дополнительные скрытые настройки, которые не могут быть настроены в другом месте.",
     "amd_usage_lowlatency": "lowlatency - низкая задержка (очень быстрый)",

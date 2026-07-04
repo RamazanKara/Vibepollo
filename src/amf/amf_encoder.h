@@ -78,6 +78,24 @@ namespace amf {
      */
     virtual void *
     get_input_texture() = 0;
+
+    /**
+     * @brief Whether the encoder has extra emitted frames buffered.
+     * @details Fluid motion (AMF FRC) produces more than one encoded frame per
+     *          captured frame; the caller drains the extras via take_pending_frame().
+     */
+    virtual bool
+    has_pending_frame() {
+      return false;
+    }
+
+    /**
+     * @brief Take the next buffered emitted frame (see has_pending_frame).
+     */
+    virtual amf_encoded_frame
+    take_pending_frame() {
+      return {};
+    }
   };
 
 }  // namespace amf

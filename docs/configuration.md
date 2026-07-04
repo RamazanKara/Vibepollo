@@ -3882,6 +3882,47 @@ They appear in the Frame Limiter section of the settings UI.
     </tr>
 </table>
 
+### amd_fluid_motion
+
+<table>
+    <tr>
+        <td>Description</td>
+        <td colspan="2">
+            Experimental fluid motion. Inserts an AMD FRC-interpolated frame between each
+            captured frame (x2), roughly doubling the streamed frame rate for smoother motion
+            at the cost of about one frame of extra latency. Works best when the client's
+            display refresh is at least double the game's render rate.
+            @note{Experimental. This option only applies to the native amdvce [encoder](#encoder) (not amdvce_legacy).}
+            @note{Leave at `auto` to keep it off.}
+        </td>
+    </tr>
+    <tr>
+        <td>Default</td>
+        <td colspan="2">@code{}
+            auto
+            @endcode</td>
+    </tr>
+    <tr>
+        <td>Example</td>
+        <td colspan="2">@code{}
+            amd_fluid_motion = enabled
+            @endcode</td>
+    </tr>
+    <tr>
+        <td rowspan="3">Choices</td>
+        <td>auto</td>
+        <td>off (default)</td>
+    </tr>
+    <tr>
+        <td>enabled</td>
+        <td>enable FRC x2 interpolation</td>
+    </tr>
+    <tr>
+        <td>disabled</td>
+        <td>off</td>
+    </tr>
+</table>
+
 ## VideoToolbox Encoder
 
 ### vt_coder

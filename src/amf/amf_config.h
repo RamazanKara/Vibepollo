@@ -132,6 +132,13 @@ namespace amf {
     // driver. Users can opt-in to 1 for absolute lowest latency or larger
     // values (4/8/16) as a workaround for driver freezes.
     std::optional<int> input_queue_size;
+
+    // --- Fluid Motion (AMF FRC frame interpolation / AFMF-style) ---
+    // Experimental, off by default. When enabled, an AMFFRC component interpolates
+    // one frame between each captured pair (x2), roughly doubling the streamed frame
+    // rate for smoother motion at the cost of ~1 frame of extra latency. Best on a
+    // client whose display refresh is >= 2x the game's render rate.
+    std::optional<bool> fluid_motion;
   };
 
 }  // namespace amf

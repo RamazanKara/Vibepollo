@@ -375,7 +375,8 @@ export function getConfigSelectOptions(
     case 'amd_smart_access_video':
     case 'amd_lowlatency_mode':
     case 'amd_high_motion_quality_boost':
-    case 'amd_av1_screen_content': {
+    case 'amd_av1_screen_content':
+    case 'amd_fluid_motion': {
       const options = [
         { label: translateOr(t, 'config.amd_opt_auto', 'Auto'), value: 'auto' },
         { label: translateOr(t, 'config.amd_opt_enabled', 'Enabled'), value: 'enabled' },

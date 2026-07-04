@@ -109,6 +109,7 @@ namespace config {
       std::optional<int> amd_high_motion_quality_boost;  // High-motion quality boost: 1=on, 0=off
       std::optional<int> amd_av1_screen_content;  // AV1 screen-content tools: 1=on, 0=off
       std::optional<int> amd_av1_latency_mode;  // AV1 encoding-latency mode (0-3)
+      std::optional<int> amd_fluid_motion;  // Fluid motion (FRC x2 frame interpolation): 1=on, 0=off
     } amd;
 
     struct {

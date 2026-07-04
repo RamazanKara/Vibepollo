@@ -13,6 +13,7 @@
 #include <unordered_map>
 
 #include <AMF/components/Component.h>
+#include <AMF/components/FRC.h>
 #include <AMF/core/Context.h>
 #include <AMF/core/Data.h>
 #include <AMF/core/Factory.h>
@@ -51,6 +52,12 @@ namespace amf {
     void *
     get_input_texture() override;
 
+    bool
+    has_pending_frame() override;
+
+    amf_encoded_frame
+    take_pending_frame() override;
+
   private:
     bool
     init_amf_library();
@@ -73,10 +80,24 @@ namespace amf {
     void
     set_codec_property(const wchar_t *h264_name, const wchar_t *hevc_name, const wchar_t *av1_name, T value);
 
+    // Create + configure the AMFFRC component for fluid motion. Returns false on failure.
+    bool
+    init_frc();
+
+    // Fluid-motion encode path: run the captured surface through FRC (x2), then encode
+    // each FRC output. Returns the first encoded frame; extras go to pending_frc_outputs.
+    amf_encoded_frame
+    encode_frame_frc(uint64_t frame_index, bool force_idr);
+
+    // Encode a single prepared AMF surface and return the packet (shared by both paths).
+    amf_encoded_frame
+    encode_surface(::amf::AMFSurface *surface, uint64_t out_index, bool force_idr, bool allow_ltr);
+
     ID3D11Device *device = nullptr;
     ::amf::AMFFactory *factory = nullptr;
     ::amf::AMFContextPtr context;
     ::amf::AMFComponentPtr encoder;
+    ::amf::AMFComponentPtr frc;  // AMF Frame Rate Converter (fluid motion); null unless enabled
     HMODULE amf_dll = nullptr;
 
     // Input texture that the rendering pipeline writes to
@@ -106,6 +127,14 @@ namespace amf {
     int current_ltr_slot = 0;      // Which LTR slot to mark next
     bool ltr_slots_valid[MAX_LTR_SLOTS] = {};
     uint64_t ltr_slot_frame_index[MAX_LTR_SLOTS] = {};  // Frame index when each LTR slot was marked
+
+    // Fluid motion (FRC) state. When active, FRC interpolates one frame between each
+    // captured pair (x2); the extra encoded frame is queued in pending_frc_outputs and
+    // drained by the caller via take_pending_frame(). Emitted frames use a monotonic
+    // doubled index so the client sees a continuous higher-rate stream.
+    bool fluid_motion_active = false;
+    std::deque<amf_encoded_frame> pending_frc_outputs;
+    uint64_t frc_emitted_index = 0;
 
     // Pending outputs stashed during SubmitInput retry or proactive backpressure drain
     std::deque<::amf::AMFDataPtr> pending_outputs;

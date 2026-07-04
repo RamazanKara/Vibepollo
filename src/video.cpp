@@ -830,6 +830,19 @@ namespace video {
       return monotonic;
     }
 
+    // Fluid motion (FRC) can emit more than one encoded frame per captured frame;
+    // the caller drains the extras after each encode_frame() call.
+    bool has_pending_frame() {
+      return device && device->amf && device->amf->has_pending_frame();
+    }
+
+    amf::amf_encoded_frame take_pending_frame() {
+      if (!device || !device->amf) {
+        return {};
+      }
+      return device->amf->take_pending_frame();
+    }
+
     // Per-frame timestamps captured at submit time. Because the encoder emits an
     // earlier frame than the one just submitted, each packet must be stamped with the
     // timestamps of the frame it actually carries, not the newest submitted frame -
@@ -2420,6 +2433,26 @@ namespace video {
     }
     packet->packet_enqueue_timestamp = std::chrono::steady_clock::now();
     packets->raise(std::move(packet));
+
+    // Fluid motion (FRC) may have produced extra interpolated frames for this
+    // capture; send them too so the client sees the higher-rate stream.
+    while (session.has_pending_frame()) {
+      auto extra = session.take_pending_frame();
+      if (extra.data.empty()) {
+        break;
+      }
+      auto extra_packet = std::make_unique<packet_raw_generic>(std::move(extra.data), extra.frame_index, extra.idr);
+      extra_packet->channel_data = channel_data;
+      extra_packet->after_ref_frame_invalidation = extra.after_ref_frame_invalidation;
+      extra_packet->frame_timestamp = frame_timestamp;
+      extra_packet->capture_timestamp = capture_timestamp ? capture_timestamp : frame_timestamp;
+      extra_packet->host_processing_timestamp = host_processing_timestamp;
+      if (webrtc_stream::has_active_sessions()) {
+        webrtc_stream::submit_video_packet(*extra_packet);
+      }
+      extra_packet->packet_enqueue_timestamp = std::chrono::steady_clock::now();
+      packets->raise(std::move(extra_packet));
+    }
 
     return 0;
   }
