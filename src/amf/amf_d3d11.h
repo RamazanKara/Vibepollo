@@ -135,6 +135,9 @@ namespace amf {
     bool fluid_motion_active = false;
     std::deque<amf_encoded_frame> pending_frc_outputs;
     uint64_t frc_emitted_index = 0;
+    // A keyframe requested while FRC is still priming (no output yet) is carried here so
+    // it lands on the first frame FRC actually emits, instead of being lost.
+    bool frc_pending_idr = false;
 
     // Pending outputs stashed during SubmitInput retry or proactive backpressure drain
     std::deque<::amf::AMFDataPtr> pending_outputs;

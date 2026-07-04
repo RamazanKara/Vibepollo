@@ -726,6 +726,7 @@ namespace amf {
     // Fluid motion (AMF FRC). Opt-in; interpolates a frame between each captured pair
     // (x2). Falls back to the normal 1:1 path if the component fails to initialise.
     frc_emitted_index = 0;
+    frc_pending_idr = false;
     pending_frc_outputs.clear();
     fluid_motion_active = config.fluid_motion.has_value() && *config.fluid_motion;
     if (fluid_motion_active && !init_frc(config.fluid_motion_profile, config.fluid_motion_mv_search)) {
@@ -747,6 +748,7 @@ namespace amf {
   amf_d3d11::destroy_encoder() {
     pending_outputs.clear();
     pending_frc_outputs.clear();
+    frc_pending_idr = false;
     fluid_motion_active = false;
     frame_rfi_flags.clear();
     hwsurfaces_in_queue = 0;
@@ -1304,6 +1306,10 @@ namespace amf {
 
     // Drain FRC outputs (the interpolated frame(s) plus the real frame) and encode
     // each. The first captured frames only prime FRC, so zero outputs early is normal.
+    // Carry a keyframe request through FRC priming: if force_idr was asked while FRC still
+    // had no output, frc_pending_idr kept it, and it must land on the first real output.
+    const bool want_idr = force_idr || frc_pending_idr;
+
     std::vector<amf_encoded_frame> encoded;
     for (int i = 0; i < 4; ++i) {
       ::amf::AMFDataPtr frc_out;
@@ -1314,17 +1320,24 @@ namespace amf {
       if (!frc_surface) {
         continue;
       }
-      // Only the first emitted frame of this call carries a requested keyframe.
-      bool idr = force_idr && encoded.empty();
+      // Only the first emitted frame of this call carries the keyframe.
+      bool idr = want_idr && encoded.empty();
       auto pkt = encode_surface(frc_surface, frc_emitted_index++, idr, false);
       if (!pkt.data.empty()) {
         encoded.push_back(std::move(pkt));
       }
     }
 
+    // Verbose-only trace of the FRC frame flow (capture -> N outputs, emitted indices,
+    // whether this batch carries the keyframe) to diagnose client-side decode issues.
+    BOOST_LOG(debug) << "AMF FRC: capture=" << frame_index << " outputs=" << encoded.size()
+                     << " next_emit_idx=" << frc_emitted_index << (want_idr ? " want_idr" : "");
+
     if (encoded.empty()) {
+      frc_pending_idr = want_idr;  // still priming; keep the keyframe request for next time
       return result;  // no output yet (FRC priming)
     }
+    frc_pending_idr = false;  // keyframe (if requested) has now been emitted
     result = std::move(encoded.front());
     for (size_t i = 1; i < encoded.size(); ++i) {
       pending_frc_outputs.push_back(std::move(encoded[i]));
