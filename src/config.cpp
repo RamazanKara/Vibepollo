@@ -331,22 +331,6 @@ namespace config {
       return ::std::nullopt;
     }
 
-    // Fluid-motion (FRC) quality preset. Maps to AMD FRC profile + motion-vector search
-    // together so a nonsensical combo can't be selected. "auto"/unknown leaves the
-    // balanced default (high profile + native search). See amf_config fluid_motion_profile.
-    ::std::optional<int> fluid_motion_quality_from_view(const ::std::string_view &value) {
-      if (value == "performance"sv) {
-        return 0;
-      }
-      if (value == "balanced"sv) {
-        return 1;
-      }
-      if (value == "quality"sv) {
-        return 2;
-      }
-      return ::std::nullopt;
-    }
-
     // AV1 encoding-latency mode. "auto" leaves the driver default; the rest map to
     // AMF_VIDEO_ENCODER_AV1_ENCODING_LATENCY_MODE_ENUM values.
     ::std::optional<int> av1_latency_from_view(const ::std::string_view &value) {
@@ -871,8 +855,6 @@ namespace config {
       std::nullopt,  // high_motion_quality_boost (auto)
       std::nullopt,  // av1_screen_content (auto)
       std::nullopt,  // av1_latency_mode (auto)
-      std::nullopt,  // fluid_motion (off)
-      std::nullopt,  // fluid_motion_quality (balanced default)
     },  // amd
 
     {
@@ -1752,8 +1734,6 @@ namespace config {
     int_f(vars, "amd_high_motion_quality_boost", video.amd.amd_high_motion_quality_boost, amd::tristate_from_view);
     int_f(vars, "amd_av1_screen_content", video.amd.amd_av1_screen_content, amd::tristate_from_view);
     int_f(vars, "amd_av1_latency_mode", video.amd.amd_av1_latency_mode, amd::av1_latency_from_view);
-    int_f(vars, "amd_fluid_motion", video.amd.amd_fluid_motion, amd::tristate_from_view);
-    int_f(vars, "amd_fluid_motion_quality", video.amd.amd_fluid_motion_quality, amd::fluid_motion_quality_from_view);
 
     int_f(vars, "vt_coder", video.vt.vt_coder, vt::coder_from_view);
     int_f(vars, "vt_software", video.vt.vt_allow_sw, vt::allow_software_from_view);
@@ -2477,8 +2457,6 @@ namespace config {
         "amd_high_motion_quality_boost",
         "amd_av1_screen_content",
         "amd_av1_latency_mode",
-        "amd_fluid_motion",
-        "amd_fluid_motion_quality",
         "vt_coder",
         "vt_software",
         "vt_realtime",

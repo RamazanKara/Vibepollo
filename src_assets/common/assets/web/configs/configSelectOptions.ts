@@ -375,8 +375,7 @@ export function getConfigSelectOptions(
     case 'amd_smart_access_video':
     case 'amd_lowlatency_mode':
     case 'amd_high_motion_quality_boost':
-    case 'amd_av1_screen_content':
-    case 'amd_fluid_motion': {
+    case 'amd_av1_screen_content': {
       const options = [
         { label: translateOr(t, 'config.amd_opt_auto', 'Auto'), value: 'auto' },
         { label: translateOr(t, 'config.amd_opt_enabled', 'Enabled'), value: 'enabled' },
@@ -394,23 +393,6 @@ export function getConfigSelectOptions(
         },
         { label: translateOr(t, 'config.amd_av1_latency_realtime', 'Real-time'), value: 'realtime' },
         { label: translateOr(t, 'config.amd_av1_latency_lowest', 'Lowest latency'), value: 'lowest' },
-      ];
-      return ensureIncludesCurrentValue(options, ctx.currentValue);
-    }
-    case 'amd_fluid_motion_quality': {
-      const options = [
-        {
-          label: translateOr(t, 'config.amd_fluid_motion_quality_performance', 'Performance'),
-          value: 'performance',
-        },
-        {
-          label: translateOr(t, 'config.amd_fluid_motion_quality_balanced', 'Balanced'),
-          value: 'balanced',
-        },
-        {
-          label: translateOr(t, 'config.amd_fluid_motion_quality_quality', 'Quality'),
-          value: 'quality',
-        },
       ];
       return ensureIncludesCurrentValue(options, ctx.currentValue);
     }

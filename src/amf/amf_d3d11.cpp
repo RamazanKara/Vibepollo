@@ -723,17 +723,6 @@ namespace amf {
     consecutive_submit_failures = 0;
     consecutive_empty_outputs = 0;
 
-    // Fluid motion (AMF FRC). Opt-in; interpolates a frame between each captured pair
-    // (x2). Falls back to the normal 1:1 path if the component fails to initialise.
-    frc_emitted_index = 0;
-    frc_pending_idr = false;
-    pending_frc_outputs.clear();
-    fluid_motion_active = config.fluid_motion.has_value() && *config.fluid_motion;
-    if (fluid_motion_active && !init_frc(config.fluid_motion_profile, config.fluid_motion_mv_search)) {
-      BOOST_LOG(warning) << "AMF: fluid motion requested but FRC init failed; continuing without it";
-      fluid_motion_active = false;
-    }
-
     auto codec_name = (video_format == 0) ? "H.264" :
                       (video_format == 1) ? "HEVC" :
                       (video_format == 2) ? "AV1" : "Unknown";
@@ -747,15 +736,8 @@ namespace amf {
   void
   amf_d3d11::destroy_encoder() {
     pending_outputs.clear();
-    pending_frc_outputs.clear();
-    frc_pending_idr = false;
-    fluid_motion_active = false;
     frame_rfi_flags.clear();
     hwsurfaces_in_queue = 0;
-    if (frc) {
-      frc->Terminate();
-      frc = nullptr;
-    }
     if (encoder) {
       encoder->Terminate();
       encoder = nullptr;
@@ -782,11 +764,6 @@ namespace amf {
     result.frame_index = frame_index;
 
     if (!encoder || !input_texture) return result;
-
-    // Fluid motion: route the capture through the FRC (frame-interpolation) path.
-    if (fluid_motion_active && frc) {
-      return encode_frame_frc(frame_index, force_idr);
-    }
 
     // Set the texture array index via private data, as FFmpeg does.
     // AMF uses this GUID to determine which slice of a texture array to encode.
@@ -1165,218 +1142,6 @@ namespace amf {
     else {
       BOOST_LOG(warning) << "AMF: set_bitrate failed, error: " << res;
     }
-  }
-
-  bool
-  amf_d3d11::init_frc(int profile, int mv_search) {
-    if (!factory || !context) return false;
-    frc = nullptr;
-    auto res = factory->CreateComponent(context, AMFFRC, &frc);
-    if (res != AMF_OK || !frc) {
-      BOOST_LOG(error) << "AMF: failed to create FRC component, error: " << res;
-      frc = nullptr;
-      return false;
-    }
-    frc->SetProperty(AMF_FRC_ENGINE_TYPE, (amf_int64) FRC_ENGINE_DX11);
-    // FRC_ONLY_INTERPOLATED: QueryOutput yields the interpolated (midpoint) frame only; the
-    // real frame is encoded separately. FRC_x2_PRESENT is a present/swapchain-path mode that
-    // never emits through QueryOutput, so it produced zero output in this offline encode path.
-    frc->SetProperty(AMF_FRC_MODE, (amf_int64) FRC_ONLY_INTERPOLATED);
-    frc->SetProperty(AMF_FRC_PROFILE, (amf_int64) profile);
-    frc->SetProperty(AMF_FRC_MV_SEARCH_MODE, (amf_int64) mv_search);
-    // No dependency on a future frame keeps the added latency to ~1 frame.
-    frc->SetProperty(AMF_FRC_USE_FUTURE_FRAME, false);
-    res = frc->Init(surface_format, encode_width, encode_height);
-    if (res != AMF_OK) {
-      BOOST_LOG(error) << "AMF: FRC Init failed, error: " << res;
-      frc = nullptr;
-      return false;
-    }
-    const char *quality = profile == 2 ? "quality" : (profile == 0 ? "performance" : "balanced");
-    BOOST_LOG(info) << "AMF: fluid motion enabled (FRC x2 interpolation, " << quality << ")";
-    return true;
-  }
-
-  // Encode a single prepared AMF surface. Simpler than the main encode_frame path
-  // (no LTR/RFI or watchdog) since fluid motion is an opt-in experimental path.
-  amf_encoded_frame
-  amf_d3d11::encode_surface(::amf::AMFSurface *surface, uint64_t out_index, bool force_idr, bool /*allow_ltr*/) {
-    amf_encoded_frame result;
-    result.frame_index = out_index;
-    if (!encoder || !surface) return result;
-
-    surface->SetPts(static_cast<amf_pts>(out_index));
-    if (force_idr) {
-      if (video_format == 0) {
-        surface->SetProperty(AMF_VIDEO_ENCODER_FORCE_PICTURE_TYPE, AMF_VIDEO_ENCODER_PICTURE_TYPE_IDR);
-        surface->SetProperty(AMF_VIDEO_ENCODER_INSERT_SPS, true);
-        surface->SetProperty(AMF_VIDEO_ENCODER_INSERT_PPS, true);
-      }
-      else if (video_format == 1) {
-        surface->SetProperty(AMF_VIDEO_ENCODER_HEVC_FORCE_PICTURE_TYPE, AMF_VIDEO_ENCODER_HEVC_PICTURE_TYPE_IDR);
-        surface->SetProperty(AMF_VIDEO_ENCODER_HEVC_INSERT_HEADER, true);
-      }
-      else {
-        surface->SetProperty(AMF_VIDEO_ENCODER_AV1_FORCE_FRAME_TYPE, AMF_VIDEO_ENCODER_AV1_FORCE_FRAME_TYPE_KEY);
-        surface->SetProperty(AMF_VIDEO_ENCODER_AV1_FORCE_INSERT_SEQUENCE_HEADER, true);
-      }
-    }
-
-    auto res = encoder->SubmitInput(surface);
-    for (int retry = 0; (res == AMF_INPUT_FULL || res == AMF_DECODER_NO_FREE_SURFACES) && retry < 20; ++retry) {
-      ::amf::AMFDataPtr drain;
-      encoder->QueryOutput(&drain);
-      if (drain) {
-        pending_outputs.push_back(drain);
-      }
-      else if (!query_timeout_supported) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-      }
-      res = encoder->SubmitInput(surface);
-    }
-    if (res != AMF_OK && res != AMF_NEED_MORE_INPUT) {
-      return result;
-    }
-
-    ::amf::AMFDataPtr output_data;
-    if (!pending_outputs.empty()) {
-      output_data = pending_outputs.front();
-      pending_outputs.pop_front();
-    }
-    else {
-      for (int poll = 0; poll < 10; ++poll) {
-        if (encoder->QueryOutput(&output_data) == AMF_OK && output_data) {
-          break;
-        }
-        if (!query_timeout_supported) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        }
-      }
-    }
-    if (!output_data) {
-      return result;
-    }
-
-    ::amf::AMFBufferPtr buffer(output_data);
-    if (!buffer) {
-      return result;
-    }
-    auto data_ptr = static_cast<uint8_t *>(buffer->GetNative());
-    auto data_size = buffer->GetSize();
-    result.data.assign(data_ptr, data_ptr + data_size);
-
-    amf_int64 output_type = 0;
-    if (video_format == 0) {
-      if (output_data->GetProperty(AMF_VIDEO_ENCODER_OUTPUT_DATA_TYPE, &output_type) == AMF_OK) {
-        result.idr = (output_type == AMF_VIDEO_ENCODER_OUTPUT_DATA_TYPE_IDR);
-      }
-    }
-    else if (video_format == 1) {
-      if (output_data->GetProperty(AMF_VIDEO_ENCODER_HEVC_OUTPUT_DATA_TYPE, &output_type) == AMF_OK) {
-        result.idr = (output_type == AMF_VIDEO_ENCODER_HEVC_OUTPUT_DATA_TYPE_IDR);
-      }
-    }
-    else {
-      if (output_data->GetProperty(AMF_VIDEO_ENCODER_AV1_OUTPUT_FRAME_TYPE, &output_type) == AMF_OK) {
-        result.idr = (output_type == AMF_VIDEO_ENCODER_AV1_OUTPUT_FRAME_TYPE_KEY);
-      }
-    }
-    return result;
-  }
-
-  amf_encoded_frame
-  amf_d3d11::encode_frame_frc(uint64_t frame_index, bool force_idr) {
-    amf_encoded_frame result;
-    result.frame_index = frame_index;
-    if (!encoder || !frc || !input_texture) {
-      return result;
-    }
-
-    // Wrap the captured D3D11 texture as an AMF surface and feed it to FRC.
-    ::amf::AMFSurfacePtr surface;
-    auto res = context->CreateSurfaceFromDX11Native(input_texture, &surface, nullptr);
-    if (res != AMF_OK || !surface) {
-      BOOST_LOG(error) << "AMF: FRC CreateSurfaceFromDX11Native failed, error: " << res;
-      return result;
-    }
-    surface->SetCrop(0, 0, encode_width, encode_height);
-    surface->SetPts(static_cast<amf_pts>(frame_index));
-
-    res = frc->SubmitInput(surface);
-    if (res != AMF_OK && res != AMF_NEED_MORE_INPUT && res != AMF_INPUT_FULL) {
-      BOOST_LOG(warning) << "AMF: FRC SubmitInput failed, error: " << res;
-    }
-
-    // FRC runs in FRC_ONLY_INTERPOLATED mode, so QueryOutput yields the *interpolated* frame
-    // (the midpoint between the previous capture and this one) and never the real frame. We
-    // therefore always encode the captured frame ourselves, and additionally encode whatever
-    // interpolated frame FRC hands back, emitting it just *before* the real frame to keep
-    // temporal order: ... real(N-1), interp(N-1,N), real(N) ...  Encoding the real frame
-    // unconditionally also guarantees forward progress, so the encoder probe (which resubmits
-    // one static frame) can never hang.
-    const bool want_idr = force_idr || frc_pending_idr;
-
-    std::vector<amf_encoded_frame> encoded;
-    if (want_idr) {
-      // On a keyframe, drop any buffered interpolated frame and send a clean real IDR;
-      // interpolating across a scene change / loss-recovery point is not worth the risk.
-      ::amf::AMFDataPtr stale;
-      while (frc->QueryOutput(&stale) == AMF_OK && stale) {
-        stale = nullptr;
-      }
-      auto real = encode_surface(surface, frc_emitted_index++, true, false);
-      if (!real.data.empty()) {
-        encoded.push_back(std::move(real));
-      }
-      frc_pending_idr = encoded.empty();  // encoder still priming -> retry the IDR next call
-    } else {
-      // Interpolated frame first (it sits between the previous real frame and this one)...
-      ::amf::AMFDataPtr frc_out;
-      if (frc->QueryOutput(&frc_out) == AMF_OK && frc_out) {
-        ::amf::AMFSurfacePtr interp(frc_out);
-        if (interp) {
-          auto ip = encode_surface(interp, frc_emitted_index++, false, false);
-          if (!ip.data.empty()) {
-            encoded.push_back(std::move(ip));
-          }
-        }
-      }
-      // ...then the real captured frame.
-      auto real = encode_surface(surface, frc_emitted_index++, false, false);
-      if (!real.data.empty()) {
-        encoded.push_back(std::move(real));
-      }
-    }
-
-    // Verbose-only trace: how many frames left the encoder for this capture. emitted=2 means
-    // FRC produced an interpolated frame (doubling works); emitted=1 is real-only (priming or
-    // FRC still not interpolating).
-    BOOST_LOG(debug) << "AMF FRC: capture=" << frame_index << " emitted=" << encoded.size()
-                     << " next_emit_idx=" << frc_emitted_index << (want_idr ? " idr" : "");
-
-    if (encoded.empty()) {
-      return result;  // encoder still priming; caller treats empty as "no packet this call"
-    }
-    result = std::move(encoded.front());
-    for (size_t i = 1; i < encoded.size(); ++i) {
-      pending_frc_outputs.push_back(std::move(encoded[i]));
-    }
-    return result;
-  }
-
-  bool
-  amf_d3d11::has_pending_frame() {
-    return !pending_frc_outputs.empty();
-  }
-
-  amf_encoded_frame
-  amf_d3d11::take_pending_frame() {
-    amf_encoded_frame frame;
-    if (!pending_frc_outputs.empty()) {
-      frame = std::move(pending_frc_outputs.front());
-      pending_frc_outputs.pop_front();
-    }
-    return frame;
   }
 
   void

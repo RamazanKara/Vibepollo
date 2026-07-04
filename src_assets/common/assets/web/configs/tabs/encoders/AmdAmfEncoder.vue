@@ -99,18 +99,6 @@ const config = store.config;
           <ConfigFieldRenderer
             setting-key="amd_av1_latency_mode"
             v-model="config.amd_av1_latency_mode"
-            class="mb-4"
-          />
-
-          <ConfigFieldRenderer
-            setting-key="amd_fluid_motion"
-            v-model="config.amd_fluid_motion"
-            class="mb-4"
-          />
-
-          <ConfigFieldRenderer
-            setting-key="amd_fluid_motion_quality"
-            v-model="config.amd_fluid_motion_quality"
             class="mb-0"
           />
         </section>
