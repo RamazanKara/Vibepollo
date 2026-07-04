@@ -1334,8 +1334,13 @@ namespace amf {
                      << " next_emit_idx=" << frc_emitted_index << (want_idr ? " want_idr" : "");
 
     if (encoded.empty()) {
-      frc_pending_idr = want_idr;  // still priming; keep the keyframe request for next time
-      return result;  // no output yet (FRC priming)
+      // FRC produced nothing yet: it is still priming (it needs a second, distinct frame
+      // before it can interpolate), or the encoder probe is resubmitting one static frame.
+      // Encode the captured frame directly so the pipeline always makes forward progress.
+      // Without this, the probe's "encode until a packet appears" loop never terminates and
+      // the host hangs on startup / the stream never begins.
+      frc_pending_idr = false;
+      return encode_surface(surface, frc_emitted_index++, want_idr, false);
     }
     frc_pending_idr = false;  // keyframe (if requested) has now been emitted
     result = std::move(encoded.front());
