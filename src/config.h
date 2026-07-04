@@ -110,6 +110,7 @@ namespace config {
       std::optional<int> amd_av1_screen_content;  // AV1 screen-content tools: 1=on, 0=off
       std::optional<int> amd_av1_latency_mode;  // AV1 encoding-latency mode (0-3)
       std::optional<int> amd_fluid_motion;  // Fluid motion (FRC x2 frame interpolation): 1=on, 0=off
+      std::optional<int> amd_fluid_motion_quality;  // FRC quality preset: 0=performance, 1=balanced, 2=quality
     } amd;
 
     struct {

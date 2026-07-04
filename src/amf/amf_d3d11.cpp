@@ -728,7 +728,7 @@ namespace amf {
     frc_emitted_index = 0;
     pending_frc_outputs.clear();
     fluid_motion_active = config.fluid_motion.has_value() && *config.fluid_motion;
-    if (fluid_motion_active && !init_frc()) {
+    if (fluid_motion_active && !init_frc(config.fluid_motion_profile, config.fluid_motion_mv_search)) {
       BOOST_LOG(warning) << "AMF: fluid motion requested but FRC init failed; continuing without it";
       fluid_motion_active = false;
     }
@@ -1166,7 +1166,7 @@ namespace amf {
   }
 
   bool
-  amf_d3d11::init_frc() {
+  amf_d3d11::init_frc(int profile, int mv_search) {
     if (!factory || !context) return false;
     frc = nullptr;
     auto res = factory->CreateComponent(context, AMFFRC, &frc);
@@ -1177,8 +1177,8 @@ namespace amf {
     }
     frc->SetProperty(AMF_FRC_ENGINE_TYPE, (amf_int64) FRC_ENGINE_DX11);
     frc->SetProperty(AMF_FRC_MODE, (amf_int64) FRC_x2_PRESENT);
-    frc->SetProperty(AMF_FRC_PROFILE, (amf_int64) FRC_PROFILE_HIGH);
-    frc->SetProperty(AMF_FRC_MV_SEARCH_MODE, (amf_int64) FRC_MV_SEARCH_NATIVE);
+    frc->SetProperty(AMF_FRC_PROFILE, (amf_int64) profile);
+    frc->SetProperty(AMF_FRC_MV_SEARCH_MODE, (amf_int64) mv_search);
     // No dependency on a future frame keeps the added latency to ~1 frame.
     frc->SetProperty(AMF_FRC_USE_FUTURE_FRAME, false);
     res = frc->Init(surface_format, encode_width, encode_height);
@@ -1187,7 +1187,8 @@ namespace amf {
       frc = nullptr;
       return false;
     }
-    BOOST_LOG(info) << "AMF: fluid motion enabled (FRC x2 interpolation)";
+    const char *quality = profile == 2 ? "quality" : (profile == 0 ? "performance" : "balanced");
+    BOOST_LOG(info) << "AMF: fluid motion enabled (FRC x2 interpolation, " << quality << ")";
     return true;
   }
 

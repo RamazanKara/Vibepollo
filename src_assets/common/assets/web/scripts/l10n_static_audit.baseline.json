@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-04T06:28:11.867Z",
-  "issueCount": 16610,
+  "generatedAt": "2026-07-04T09:49:11.839Z",
+  "issueCount": 16651,
   "issues": [
     {
       "fingerprint": "fallback-literal|configs/configSelectOptions.ts|100||config.address_family_both|Both||",
@@ -382,7 +382,34 @@
       "message": "I18n fallback literal should be represented in en.json: Lowest latency"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|402||_common.auto|Auto||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|403||config.amd_fluid_motion_quality_performance|Performance||",
+      "rule": "fallback-literal",
+      "file": "configs/configSelectOptions.ts",
+      "locale": null,
+      "key": "config.amd_fluid_motion_quality_performance",
+      "value": "Performance",
+      "message": "I18n fallback literal should be represented in en.json: Performance"
+    },
+    {
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|407||config.amd_fluid_motion_quality_balanced|Balanced||",
+      "rule": "fallback-literal",
+      "file": "configs/configSelectOptions.ts",
+      "locale": null,
+      "key": "config.amd_fluid_motion_quality_balanced",
+      "value": "Balanced",
+      "message": "I18n fallback literal should be represented in en.json: Balanced"
+    },
+    {
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|411||config.amd_fluid_motion_quality_quality|Quality||",
+      "rule": "fallback-literal",
+      "file": "configs/configSelectOptions.ts",
+      "locale": null,
+      "key": "config.amd_fluid_motion_quality_quality",
+      "value": "Quality",
+      "message": "I18n fallback literal should be represented in en.json: Quality"
+    },
+    {
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|419||_common.auto|Auto||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -391,7 +418,7 @@
       "message": "I18n fallback literal should be represented in en.json: Auto"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|403||_common.disabled|Disabled||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|420||_common.disabled|Disabled||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -400,7 +427,7 @@
       "message": "I18n fallback literal should be represented in en.json: Disabled"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|404||config.vt_software_allowed|Allowed||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|421||config.vt_software_allowed|Allowed||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -409,7 +436,7 @@
       "message": "I18n fallback literal should be represented in en.json: Allowed"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|405||config.vt_software_forced|Forced||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|422||config.vt_software_forced|Forced||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -418,7 +445,7 @@
       "message": "I18n fallback literal should be represented in en.json: Forced"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|439||frameLimiter.provider.auto|Auto||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|456||frameLimiter.provider.auto|Auto||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -427,7 +454,7 @@
       "message": "I18n fallback literal should be represented in en.json: Auto"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|442||frameLimiter.provider.nvcp|NVIDIA Control Panel||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|459||frameLimiter.provider.nvcp|NVIDIA Control Panel||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -436,7 +463,7 @@
       "message": "I18n fallback literal should be represented in en.json: NVIDIA Control Panel"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|450||frameLimiter.syncLimiter.keep|Keep||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|467||frameLimiter.syncLimiter.keep|Keep||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -445,7 +472,7 @@
       "message": "I18n fallback literal should be represented in en.json: Keep"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|451||frameLimiter.syncLimiter.async|Async||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|468||frameLimiter.syncLimiter.async|Async||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -454,7 +481,7 @@
       "message": "I18n fallback literal should be represented in en.json: Async"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|453||frameLimiter.syncLimiter.front|Front edge sync||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|470||frameLimiter.syncLimiter.front|Front edge sync||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -463,7 +490,7 @@
       "message": "I18n fallback literal should be represented in en.json: Front edge sync"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|457||frameLimiter.syncLimiter.back|Back edge sync||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|474||frameLimiter.syncLimiter.back|Back edge sync||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -472,7 +499,7 @@
       "message": "I18n fallback literal should be represented in en.json: Back edge sync"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|461||frameLimiter.syncLimiter.reflex|NVIDIA Reflex||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|478||frameLimiter.syncLimiter.reflex|NVIDIA Reflex||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -481,7 +508,7 @@
       "message": "I18n fallback literal should be represented in en.json: NVIDIA Reflex"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|469||_common.disabled|Disabled||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|486||_common.disabled|Disabled||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -490,7 +517,7 @@
       "message": "I18n fallback literal should be represented in en.json: Disabled"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|471||config.dd_config_verify_only|Verify only||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|488||config.dd_config_verify_only|Verify only||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -499,7 +526,7 @@
       "message": "I18n fallback literal should be represented in en.json: Verify only"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|475||config.dd_config_ensure_active|Ensure active||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|492||config.dd_config_ensure_active|Ensure active||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -508,7 +535,7 @@
       "message": "I18n fallback literal should be represented in en.json: Ensure active"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|479||config.dd_config_ensure_primary|Ensure primary||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|496||config.dd_config_ensure_primary|Ensure primary||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -517,7 +544,7 @@
       "message": "I18n fallback literal should be represented in en.json: Ensure primary"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|483||config.dd_config_ensure_only_display|Ensure only display||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|500||config.dd_config_ensure_only_display|Ensure only display||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -526,7 +553,7 @@
       "message": "I18n fallback literal should be represented in en.json: Ensure only display"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|492||config.dd_resolution_option_disabled|Disabled||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|509||config.dd_resolution_option_disabled|Disabled||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -535,7 +562,7 @@
       "message": "I18n fallback literal should be represented in en.json: Disabled"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|495||config.dd_resolution_option_auto|Auto||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|512||config.dd_resolution_option_auto|Auto||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -544,7 +571,7 @@
       "message": "I18n fallback literal should be represented in en.json: Auto"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|496||config.dd_resolution_option_manual|Manual||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|513||config.dd_resolution_option_manual|Manual||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -553,7 +580,7 @@
       "message": "I18n fallback literal should be represented in en.json: Manual"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|503||config.dd_refresh_rate_option_disabled|Disabled||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|520||config.dd_refresh_rate_option_disabled|Disabled||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -562,7 +589,7 @@
       "message": "I18n fallback literal should be represented in en.json: Disabled"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|506||config.dd_refresh_rate_option_auto|Auto||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|523||config.dd_refresh_rate_option_auto|Auto||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -571,7 +598,7 @@
       "message": "I18n fallback literal should be represented in en.json: Auto"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|508||config.dd_refresh_rate_option_manual|Manual||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|525||config.dd_refresh_rate_option_manual|Manual||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -580,7 +607,7 @@
       "message": "I18n fallback literal should be represented in en.json: Manual"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|516||config.dd_hdr_option_disabled|Disabled||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|533||config.dd_hdr_option_disabled|Disabled||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -589,7 +616,7 @@
       "message": "I18n fallback literal should be represented in en.json: Disabled"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|517||config.dd_hdr_option_auto|Auto||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|534||config.dd_hdr_option_auto|Auto||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -598,7 +625,7 @@
       "message": "I18n fallback literal should be represented in en.json: Auto"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|524||config.virtual_display_mode_disabled|Disabled||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|541||config.virtual_display_mode_disabled|Disabled||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -607,7 +634,7 @@
       "message": "I18n fallback literal should be represented in en.json: Disabled"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|528||config.virtual_display_mode_per_client|Per client||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|545||config.virtual_display_mode_per_client|Per client||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -616,7 +643,7 @@
       "message": "I18n fallback literal should be represented in en.json: Per client"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|531||config.virtual_display_mode_shared|Shared||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|548||config.virtual_display_mode_shared|Shared||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -625,7 +652,7 @@
       "message": "I18n fallback literal should be represented in en.json: Shared"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|538||config.virtual_display_layout_exclusive|Exclusive||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|555||config.virtual_display_layout_exclusive|Exclusive||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -634,7 +661,7 @@
       "message": "I18n fallback literal should be represented in en.json: Exclusive"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|542||config.virtual_display_layout_extended|Extended||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|559||config.virtual_display_layout_extended|Extended||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -643,7 +670,7 @@
       "message": "I18n fallback literal should be represented in en.json: Extended"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|546||config.virtual_display_layout_extended_primary|Extended (primary)||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|563||config.virtual_display_layout_extended_primary|Extended (primary)||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -652,7 +679,7 @@
       "message": "I18n fallback literal should be represented in en.json: Extended (primary)"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|554||config.virtual_display_layout_extended_isolated|Extended (isolated)||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|571||config.virtual_display_layout_extended_isolated|Extended (isolated)||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -661,7 +688,7 @@
       "message": "I18n fallback literal should be represented in en.json: Extended (isolated)"
     },
     {
-      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|562||config.virtual_display_layout_extended_primary_isolated|Extended (primary isolated)||",
+      "fingerprint": "fallback-literal|configs/configSelectOptions.ts|579||config.virtual_display_layout_extended_primary_isolated|Extended (primary isolated)||",
       "rule": "fallback-literal",
       "file": "configs/configSelectOptions.ts",
       "locale": null,
@@ -2128,7 +2155,7 @@
       "message": "Hard-coded message text should use i18n: Update failed"
     },
     {
-      "fingerprint": "hardcoded-ui-prop|components/app-edit/AppEditConfigOverridesSection.vue|1362|||Configure Resolution||",
+      "fingerprint": "hardcoded-ui-prop|components/app-edit/AppEditConfigOverridesSection.vue|1363|||Configure Resolution||",
       "rule": "hardcoded-ui-prop",
       "file": "components/app-edit/AppEditConfigOverridesSection.vue",
       "locale": null,
@@ -2137,7 +2164,7 @@
       "message": "Hard-coded UI property \"label\" should use i18n: Configure Resolution"
     },
     {
-      "fingerprint": "hardcoded-ui-prop|components/app-edit/AppEditConfigOverridesSection.vue|1374|||Configure Refresh Rate||",
+      "fingerprint": "hardcoded-ui-prop|components/app-edit/AppEditConfigOverridesSection.vue|1375|||Configure Refresh Rate||",
       "rule": "hardcoded-ui-prop",
       "file": "components/app-edit/AppEditConfigOverridesSection.vue",
       "locale": null,
@@ -2146,7 +2173,7 @@
       "message": "Hard-coded UI property \"label\" should use i18n: Configure Refresh Rate"
     },
     {
-      "fingerprint": "hardcoded-ui-prop|components/app-edit/AppEditConfigOverridesSection.vue|1386|||Configure HDR||",
+      "fingerprint": "hardcoded-ui-prop|components/app-edit/AppEditConfigOverridesSection.vue|1387|||Configure HDR||",
       "rule": "hardcoded-ui-prop",
       "file": "components/app-edit/AppEditConfigOverridesSection.vue",
       "locale": null,
@@ -2416,7 +2443,7 @@
       "message": "Hard-coded UI property \"description\" should use i18n: Report bugs or request features"
     },
     {
-      "fingerprint": "hardcoded-ui-prop|stores/config.ts|749|||Invalid manual resolution. Use WIDTHxHEIGHT (e.g., 2560x1440).||",
+      "fingerprint": "hardcoded-ui-prop|stores/config.ts|750|||Invalid manual resolution. Use WIDTHxHEIGHT (e.g., 2560x1440).||",
       "rule": "hardcoded-ui-prop",
       "file": "stores/config.ts",
       "locale": null,
@@ -2425,7 +2452,7 @@
       "message": "Hard-coded UI property \"message\" should use i18n: Invalid manual resolution. Use WIDTHxHEIGHT (e.g., 2560x1440)."
     },
     {
-      "fingerprint": "hardcoded-ui-prop|stores/config.ts|768|||Invalid manual refresh rate. Use a positive number, e.g., 60 or 59.94.||",
+      "fingerprint": "hardcoded-ui-prop|stores/config.ts|769|||Invalid manual refresh rate. Use a positive number, e.g., 60 or 59.94.||",
       "rule": "hardcoded-ui-prop",
       "file": "stores/config.ts",
       "locale": null,
@@ -2434,7 +2461,7 @@
       "message": "Hard-coded UI property \"message\" should use i18n: Invalid manual refresh rate. Use a positive number, e.g., 60 or 59.94."
     },
     {
-      "fingerprint": "hardcoded-ui-prop|stores/config.ts|795|||Invalid resolution in Display mode remapping. Use WIDTHxHEIGHT (e.g., 1920x1080) or leave blank.||",
+      "fingerprint": "hardcoded-ui-prop|stores/config.ts|796|||Invalid resolution in Display mode remapping. Use WIDTHxHEIGHT (e.g., 1920x1080) or leave blank.||",
       "rule": "hardcoded-ui-prop",
       "file": "stores/config.ts",
       "locale": null,
@@ -2443,7 +2470,7 @@
       "message": "Hard-coded UI property \"message\" should use i18n: Invalid resolution in Display mode remapping. Use WIDTHxHEIGHT (e.g., 1920x1080) or leave blank."
     },
     {
-      "fingerprint": "hardcoded-ui-prop|stores/config.ts|810|||Invalid refresh rate in remapping. Use a positive number or leave blank.||",
+      "fingerprint": "hardcoded-ui-prop|stores/config.ts|811|||Invalid refresh rate in remapping. Use a positive number or leave blank.||",
       "rule": "hardcoded-ui-prop",
       "file": "stores/config.ts",
       "locale": null,
@@ -2452,7 +2479,7 @@
       "message": "Hard-coded UI property \"message\" should use i18n: Invalid refresh rate in remapping. Use a positive number or leave blank."
     },
     {
-      "fingerprint": "hardcoded-ui-prop|stores/config.ts|817|||For refresh-rate-only mappings, Final refresh rate is required.||",
+      "fingerprint": "hardcoded-ui-prop|stores/config.ts|818|||For refresh-rate-only mappings, Final refresh rate is required.||",
       "rule": "hardcoded-ui-prop",
       "file": "stores/config.ts",
       "locale": null,
@@ -2461,7 +2488,7 @@
       "message": "Hard-coded UI property \"message\" should use i18n: For refresh-rate-only mappings, Final refresh rate is required."
     },
     {
-      "fingerprint": "hardcoded-ui-prop|stores/config.ts|828|||Invalid refresh rate in remapping. Use a positive number or leave blank.||",
+      "fingerprint": "hardcoded-ui-prop|stores/config.ts|829|||Invalid refresh rate in remapping. Use a positive number or leave blank.||",
       "rule": "hardcoded-ui-prop",
       "file": "stores/config.ts",
       "locale": null,
@@ -2470,7 +2497,7 @@
       "message": "Hard-coded UI property \"message\" should use i18n: Invalid refresh rate in remapping. Use a positive number or leave blank."
     },
     {
-      "fingerprint": "hardcoded-ui-prop|stores/config.ts|838|||For mixed mappings, specify at least one Final field.||",
+      "fingerprint": "hardcoded-ui-prop|stores/config.ts|839|||For mixed mappings, specify at least one Final field.||",
       "rule": "hardcoded-ui-prop",
       "file": "stores/config.ts",
       "locale": null,
@@ -2479,7 +2506,7 @@
       "message": "Hard-coded UI property \"message\" should use i18n: For mixed mappings, specify at least one Final field."
     },
     {
-      "fingerprint": "hardcoded-ui-prop|stores/config.ts|852|||For resolution-only mappings, Final resolution is required.||",
+      "fingerprint": "hardcoded-ui-prop|stores/config.ts|853|||For resolution-only mappings, Final resolution is required.||",
       "rule": "hardcoded-ui-prop",
       "file": "stores/config.ts",
       "locale": null,
@@ -4358,6 +4385,24 @@
       "key": "config.amd_fluid_motion_desc",
       "value": "Experimental. Inserts an AMD FRC-interpolated frame between each captured frame (x2), roughly doubling the streamed frame rate for smoother motion at the cost of ~1 frame of extra latency. Best when the client's display refresh is at least double the game's render rate. 'auto' leaves it off. Only applies to the native amdvce encoder.",
       "message": "bg.json value is identical to English at config.amd_fluid_motion_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/bg.json||bg|config.amd_fluid_motion_quality_desc|Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/bg.json",
+      "locale": "bg",
+      "key": "config.amd_fluid_motion_quality_desc",
+      "value": "Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.",
+      "message": "bg.json value is identical to English at config.amd_fluid_motion_quality_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/bg.json||bg|config.amd_fluid_motion_quality|AMF Fluid Motion Quality||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/bg.json",
+      "locale": "bg",
+      "key": "config.amd_fluid_motion_quality",
+      "value": "AMF Fluid Motion Quality",
+      "message": "bg.json value is identical to English at config.amd_fluid_motion_quality"
     },
     {
       "fingerprint": "locale-untranslated-value|public/assets/locale/bg.json||bg|config.amd_fluid_motion|AMF Fluid Motion (frame interpolation)||",
@@ -11137,6 +11182,24 @@
       "message": "cs.json value is identical to English at config.amd_fluid_motion_desc"
     },
     {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/cs.json||cs|config.amd_fluid_motion_quality_desc|Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/cs.json",
+      "locale": "cs",
+      "key": "config.amd_fluid_motion_quality_desc",
+      "value": "Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.",
+      "message": "cs.json value is identical to English at config.amd_fluid_motion_quality_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/cs.json||cs|config.amd_fluid_motion_quality|AMF Fluid Motion Quality||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/cs.json",
+      "locale": "cs",
+      "key": "config.amd_fluid_motion_quality",
+      "value": "AMF Fluid Motion Quality",
+      "message": "cs.json value is identical to English at config.amd_fluid_motion_quality"
+    },
+    {
       "fingerprint": "locale-untranslated-value|public/assets/locale/cs.json||cs|config.amd_fluid_motion|AMF Fluid Motion (frame interpolation)||",
       "rule": "locale-untranslated-value",
       "file": "public/assets/locale/cs.json",
@@ -15392,6 +15455,24 @@
       "key": "config.amd_fluid_motion_desc",
       "value": "Experimental. Inserts an AMD FRC-interpolated frame between each captured frame (x2), roughly doubling the streamed frame rate for smoother motion at the cost of ~1 frame of extra latency. Best when the client's display refresh is at least double the game's render rate. 'auto' leaves it off. Only applies to the native amdvce encoder.",
       "message": "de.json value is identical to English at config.amd_fluid_motion_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/de.json||de|config.amd_fluid_motion_quality_desc|Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/de.json",
+      "locale": "de",
+      "key": "config.amd_fluid_motion_quality_desc",
+      "value": "Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.",
+      "message": "de.json value is identical to English at config.amd_fluid_motion_quality_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/de.json||de|config.amd_fluid_motion_quality|AMF Fluid Motion Quality||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/de.json",
+      "locale": "de",
+      "key": "config.amd_fluid_motion_quality",
+      "value": "AMF Fluid Motion Quality",
+      "message": "de.json value is identical to English at config.amd_fluid_motion_quality"
     },
     {
       "fingerprint": "locale-untranslated-value|public/assets/locale/de.json||de|config.amd_fluid_motion|AMF Fluid Motion (frame interpolation)||",
@@ -23512,6 +23593,24 @@
       "message": "es.json value is identical to English at config.amd_fluid_motion_desc"
     },
     {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/es.json||es|config.amd_fluid_motion_quality_desc|Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/es.json",
+      "locale": "es",
+      "key": "config.amd_fluid_motion_quality_desc",
+      "value": "Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.",
+      "message": "es.json value is identical to English at config.amd_fluid_motion_quality_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/es.json||es|config.amd_fluid_motion_quality|AMF Fluid Motion Quality||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/es.json",
+      "locale": "es",
+      "key": "config.amd_fluid_motion_quality",
+      "value": "AMF Fluid Motion Quality",
+      "message": "es.json value is identical to English at config.amd_fluid_motion_quality"
+    },
+    {
       "fingerprint": "locale-untranslated-value|public/assets/locale/es.json||es|config.amd_fluid_motion|AMF Fluid Motion (frame interpolation)||",
       "rule": "locale-untranslated-value",
       "file": "public/assets/locale/es.json",
@@ -31502,6 +31601,24 @@
       "key": "config.amd_fluid_motion_desc",
       "value": "Experimental. Inserts an AMD FRC-interpolated frame between each captured frame (x2), roughly doubling the streamed frame rate for smoother motion at the cost of ~1 frame of extra latency. Best when the client's display refresh is at least double the game's render rate. 'auto' leaves it off. Only applies to the native amdvce encoder.",
       "message": "fr.json value is identical to English at config.amd_fluid_motion_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/fr.json||fr|config.amd_fluid_motion_quality_desc|Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/fr.json",
+      "locale": "fr",
+      "key": "config.amd_fluid_motion_quality_desc",
+      "value": "Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.",
+      "message": "fr.json value is identical to English at config.amd_fluid_motion_quality_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/fr.json||fr|config.amd_fluid_motion_quality|AMF Fluid Motion Quality||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/fr.json",
+      "locale": "fr",
+      "key": "config.amd_fluid_motion_quality",
+      "value": "AMF Fluid Motion Quality",
+      "message": "fr.json value is identical to English at config.amd_fluid_motion_quality"
     },
     {
       "fingerprint": "locale-untranslated-value|public/assets/locale/fr.json||fr|config.amd_fluid_motion|AMF Fluid Motion (frame interpolation)||",
@@ -39523,6 +39640,24 @@
       "message": "hu.json value is identical to English at config.amd_fluid_motion_desc"
     },
     {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/hu.json||hu|config.amd_fluid_motion_quality_desc|Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/hu.json",
+      "locale": "hu",
+      "key": "config.amd_fluid_motion_quality_desc",
+      "value": "Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.",
+      "message": "hu.json value is identical to English at config.amd_fluid_motion_quality_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/hu.json||hu|config.amd_fluid_motion_quality|AMF Fluid Motion Quality||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/hu.json",
+      "locale": "hu",
+      "key": "config.amd_fluid_motion_quality",
+      "value": "AMF Fluid Motion Quality",
+      "message": "hu.json value is identical to English at config.amd_fluid_motion_quality"
+    },
+    {
       "fingerprint": "locale-untranslated-value|public/assets/locale/hu.json||hu|config.amd_fluid_motion|AMF Fluid Motion (frame interpolation)||",
       "rule": "locale-untranslated-value",
       "file": "public/assets/locale/hu.json",
@@ -47450,6 +47585,24 @@
       "key": "config.amd_fluid_motion_desc",
       "value": "Experimental. Inserts an AMD FRC-interpolated frame between each captured frame (x2), roughly doubling the streamed frame rate for smoother motion at the cost of ~1 frame of extra latency. Best when the client's display refresh is at least double the game's render rate. 'auto' leaves it off. Only applies to the native amdvce encoder.",
       "message": "it.json value is identical to English at config.amd_fluid_motion_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/it.json||it|config.amd_fluid_motion_quality_desc|Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/it.json",
+      "locale": "it",
+      "key": "config.amd_fluid_motion_quality_desc",
+      "value": "Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.",
+      "message": "it.json value is identical to English at config.amd_fluid_motion_quality_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/it.json||it|config.amd_fluid_motion_quality|AMF Fluid Motion Quality||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/it.json",
+      "locale": "it",
+      "key": "config.amd_fluid_motion_quality",
+      "value": "AMF Fluid Motion Quality",
+      "message": "it.json value is identical to English at config.amd_fluid_motion_quality"
     },
     {
       "fingerprint": "locale-untranslated-value|public/assets/locale/it.json||it|config.amd_fluid_motion|AMF Fluid Motion (frame interpolation)||",
@@ -55451,6 +55604,24 @@
       "key": "config.amd_fluid_motion_desc",
       "value": "Experimental. Inserts an AMD FRC-interpolated frame between each captured frame (x2), roughly doubling the streamed frame rate for smoother motion at the cost of ~1 frame of extra latency. Best when the client's display refresh is at least double the game's render rate. 'auto' leaves it off. Only applies to the native amdvce encoder.",
       "message": "ja.json value is identical to English at config.amd_fluid_motion_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/ja.json||ja|config.amd_fluid_motion_quality_desc|Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/ja.json",
+      "locale": "ja",
+      "key": "config.amd_fluid_motion_quality_desc",
+      "value": "Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.",
+      "message": "ja.json value is identical to English at config.amd_fluid_motion_quality_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/ja.json||ja|config.amd_fluid_motion_quality|AMF Fluid Motion Quality||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/ja.json",
+      "locale": "ja",
+      "key": "config.amd_fluid_motion_quality",
+      "value": "AMF Fluid Motion Quality",
+      "message": "ja.json value is identical to English at config.amd_fluid_motion_quality"
     },
     {
       "fingerprint": "locale-untranslated-value|public/assets/locale/ja.json||ja|config.amd_fluid_motion|AMF Fluid Motion (frame interpolation)||",
@@ -63499,6 +63670,24 @@
       "message": "ko.json value is identical to English at config.amd_fluid_motion_desc"
     },
     {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/ko.json||ko|config.amd_fluid_motion_quality_desc|Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/ko.json",
+      "locale": "ko",
+      "key": "config.amd_fluid_motion_quality_desc",
+      "value": "Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.",
+      "message": "ko.json value is identical to English at config.amd_fluid_motion_quality_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/ko.json||ko|config.amd_fluid_motion_quality|AMF Fluid Motion Quality||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/ko.json",
+      "locale": "ko",
+      "key": "config.amd_fluid_motion_quality",
+      "value": "AMF Fluid Motion Quality",
+      "message": "ko.json value is identical to English at config.amd_fluid_motion_quality"
+    },
+    {
       "fingerprint": "locale-untranslated-value|public/assets/locale/ko.json||ko|config.amd_fluid_motion|AMF Fluid Motion (frame interpolation)||",
       "rule": "locale-untranslated-value",
       "file": "public/assets/locale/ko.json",
@@ -71491,6 +71680,24 @@
       "message": "pl.json value is identical to English at config.amd_fluid_motion_desc"
     },
     {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/pl.json||pl|config.amd_fluid_motion_quality_desc|Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/pl.json",
+      "locale": "pl",
+      "key": "config.amd_fluid_motion_quality_desc",
+      "value": "Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.",
+      "message": "pl.json value is identical to English at config.amd_fluid_motion_quality_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/pl.json||pl|config.amd_fluid_motion_quality|AMF Fluid Motion Quality||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/pl.json",
+      "locale": "pl",
+      "key": "config.amd_fluid_motion_quality",
+      "value": "AMF Fluid Motion Quality",
+      "message": "pl.json value is identical to English at config.amd_fluid_motion_quality"
+    },
+    {
       "fingerprint": "locale-untranslated-value|public/assets/locale/pl.json||pl|config.amd_fluid_motion|AMF Fluid Motion (frame interpolation)||",
       "rule": "locale-untranslated-value",
       "file": "public/assets/locale/pl.json",
@@ -79400,6 +79607,24 @@
       "key": "config.amd_fluid_motion_desc",
       "value": "Experimental. Inserts an AMD FRC-interpolated frame between each captured frame (x2), roughly doubling the streamed frame rate for smoother motion at the cost of ~1 frame of extra latency. Best when the client's display refresh is at least double the game's render rate. 'auto' leaves it off. Only applies to the native amdvce encoder.",
       "message": "pt_BR.json value is identical to English at config.amd_fluid_motion_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/pt_BR.json||pt_BR|config.amd_fluid_motion_quality_desc|Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/pt_BR.json",
+      "locale": "pt_BR",
+      "key": "config.amd_fluid_motion_quality_desc",
+      "value": "Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.",
+      "message": "pt_BR.json value is identical to English at config.amd_fluid_motion_quality_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/pt_BR.json||pt_BR|config.amd_fluid_motion_quality|AMF Fluid Motion Quality||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/pt_BR.json",
+      "locale": "pt_BR",
+      "key": "config.amd_fluid_motion_quality",
+      "value": "AMF Fluid Motion Quality",
+      "message": "pt_BR.json value is identical to English at config.amd_fluid_motion_quality"
     },
     {
       "fingerprint": "locale-untranslated-value|public/assets/locale/pt_BR.json||pt_BR|config.amd_fluid_motion|AMF Fluid Motion (frame interpolation)||",
@@ -87392,6 +87617,24 @@
       "key": "config.amd_fluid_motion_desc",
       "value": "Experimental. Inserts an AMD FRC-interpolated frame between each captured frame (x2), roughly doubling the streamed frame rate for smoother motion at the cost of ~1 frame of extra latency. Best when the client's display refresh is at least double the game's render rate. 'auto' leaves it off. Only applies to the native amdvce encoder.",
       "message": "pt.json value is identical to English at config.amd_fluid_motion_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/pt.json||pt|config.amd_fluid_motion_quality_desc|Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/pt.json",
+      "locale": "pt",
+      "key": "config.amd_fluid_motion_quality_desc",
+      "value": "Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.",
+      "message": "pt.json value is identical to English at config.amd_fluid_motion_quality_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/pt.json||pt|config.amd_fluid_motion_quality|AMF Fluid Motion Quality||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/pt.json",
+      "locale": "pt",
+      "key": "config.amd_fluid_motion_quality",
+      "value": "AMF Fluid Motion Quality",
+      "message": "pt.json value is identical to English at config.amd_fluid_motion_quality"
     },
     {
       "fingerprint": "locale-untranslated-value|public/assets/locale/pt.json||pt|config.amd_fluid_motion|AMF Fluid Motion (frame interpolation)||",
@@ -95440,6 +95683,24 @@
       "message": "ru.json value is identical to English at config.amd_fluid_motion_desc"
     },
     {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/ru.json||ru|config.amd_fluid_motion_quality_desc|Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/ru.json",
+      "locale": "ru",
+      "key": "config.amd_fluid_motion_quality_desc",
+      "value": "Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.",
+      "message": "ru.json value is identical to English at config.amd_fluid_motion_quality_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/ru.json||ru|config.amd_fluid_motion_quality|AMF Fluid Motion Quality||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/ru.json",
+      "locale": "ru",
+      "key": "config.amd_fluid_motion_quality",
+      "value": "AMF Fluid Motion Quality",
+      "message": "ru.json value is identical to English at config.amd_fluid_motion_quality"
+    },
+    {
       "fingerprint": "locale-untranslated-value|public/assets/locale/ru.json||ru|config.amd_fluid_motion|AMF Fluid Motion (frame interpolation)||",
       "rule": "locale-untranslated-value",
       "file": "public/assets/locale/ru.json",
@@ -103457,6 +103718,24 @@
       "key": "config.amd_fluid_motion_desc",
       "value": "Experimental. Inserts an AMD FRC-interpolated frame between each captured frame (x2), roughly doubling the streamed frame rate for smoother motion at the cost of ~1 frame of extra latency. Best when the client's display refresh is at least double the game's render rate. 'auto' leaves it off. Only applies to the native amdvce encoder.",
       "message": "sv.json value is identical to English at config.amd_fluid_motion_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/sv.json||sv|config.amd_fluid_motion_quality_desc|Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/sv.json",
+      "locale": "sv",
+      "key": "config.amd_fluid_motion_quality_desc",
+      "value": "Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.",
+      "message": "sv.json value is identical to English at config.amd_fluid_motion_quality_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/sv.json||sv|config.amd_fluid_motion_quality|AMF Fluid Motion Quality||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/sv.json",
+      "locale": "sv",
+      "key": "config.amd_fluid_motion_quality",
+      "value": "AMF Fluid Motion Quality",
+      "message": "sv.json value is identical to English at config.amd_fluid_motion_quality"
     },
     {
       "fingerprint": "locale-untranslated-value|public/assets/locale/sv.json||sv|config.amd_fluid_motion|AMF Fluid Motion (frame interpolation)||",
@@ -111541,6 +111820,24 @@
       "message": "tr.json value is identical to English at config.amd_fluid_motion_desc"
     },
     {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/tr.json||tr|config.amd_fluid_motion_quality_desc|Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/tr.json",
+      "locale": "tr",
+      "key": "config.amd_fluid_motion_quality_desc",
+      "value": "Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.",
+      "message": "tr.json value is identical to English at config.amd_fluid_motion_quality_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/tr.json||tr|config.amd_fluid_motion_quality|AMF Fluid Motion Quality||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/tr.json",
+      "locale": "tr",
+      "key": "config.amd_fluid_motion_quality",
+      "value": "AMF Fluid Motion Quality",
+      "message": "tr.json value is identical to English at config.amd_fluid_motion_quality"
+    },
+    {
       "fingerprint": "locale-untranslated-value|public/assets/locale/tr.json||tr|config.amd_fluid_motion|AMF Fluid Motion (frame interpolation)||",
       "rule": "locale-untranslated-value",
       "file": "public/assets/locale/tr.json",
@@ -119495,6 +119792,24 @@
       "key": "config.amd_fluid_motion_desc",
       "value": "Experimental. Inserts an AMD FRC-interpolated frame between each captured frame (x2), roughly doubling the streamed frame rate for smoother motion at the cost of ~1 frame of extra latency. Best when the client's display refresh is at least double the game's render rate. 'auto' leaves it off. Only applies to the native amdvce encoder.",
       "message": "uk.json value is identical to English at config.amd_fluid_motion_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/uk.json||uk|config.amd_fluid_motion_quality_desc|Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/uk.json",
+      "locale": "uk",
+      "key": "config.amd_fluid_motion_quality_desc",
+      "value": "Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.",
+      "message": "uk.json value is identical to English at config.amd_fluid_motion_quality_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/uk.json||uk|config.amd_fluid_motion_quality|AMF Fluid Motion Quality||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/uk.json",
+      "locale": "uk",
+      "key": "config.amd_fluid_motion_quality",
+      "value": "AMF Fluid Motion Quality",
+      "message": "uk.json value is identical to English at config.amd_fluid_motion_quality"
     },
     {
       "fingerprint": "locale-untranslated-value|public/assets/locale/uk.json||uk|config.amd_fluid_motion|AMF Fluid Motion (frame interpolation)||",
@@ -127489,6 +127804,24 @@
       "message": "vi.json value is identical to English at config.amd_fluid_motion_desc"
     },
     {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/vi.json||vi|config.amd_fluid_motion_quality_desc|Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/vi.json",
+      "locale": "vi",
+      "key": "config.amd_fluid_motion_quality_desc",
+      "value": "Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.",
+      "message": "vi.json value is identical to English at config.amd_fluid_motion_quality_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/vi.json||vi|config.amd_fluid_motion_quality|AMF Fluid Motion Quality||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/vi.json",
+      "locale": "vi",
+      "key": "config.amd_fluid_motion_quality",
+      "value": "AMF Fluid Motion Quality",
+      "message": "vi.json value is identical to English at config.amd_fluid_motion_quality"
+    },
+    {
       "fingerprint": "locale-untranslated-value|public/assets/locale/vi.json||vi|config.amd_fluid_motion|AMF Fluid Motion (frame interpolation)||",
       "rule": "locale-untranslated-value",
       "file": "public/assets/locale/vi.json",
@@ -135362,6 +135695,24 @@
       "key": "config.amd_fluid_motion_desc",
       "value": "Experimental. Inserts an AMD FRC-interpolated frame between each captured frame (x2), roughly doubling the streamed frame rate for smoother motion at the cost of ~1 frame of extra latency. Best when the client's display refresh is at least double the game's render rate. 'auto' leaves it off. Only applies to the native amdvce encoder.",
       "message": "zh_TW.json value is identical to English at config.amd_fluid_motion_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/zh_TW.json||zh_TW|config.amd_fluid_motion_quality_desc|Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/zh_TW.json",
+      "locale": "zh_TW",
+      "key": "config.amd_fluid_motion_quality_desc",
+      "value": "Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.",
+      "message": "zh_TW.json value is identical to English at config.amd_fluid_motion_quality_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/zh_TW.json||zh_TW|config.amd_fluid_motion_quality|AMF Fluid Motion Quality||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/zh_TW.json",
+      "locale": "zh_TW",
+      "key": "config.amd_fluid_motion_quality",
+      "value": "AMF Fluid Motion Quality",
+      "message": "zh_TW.json value is identical to English at config.amd_fluid_motion_quality"
     },
     {
       "fingerprint": "locale-untranslated-value|public/assets/locale/zh_TW.json||zh_TW|config.amd_fluid_motion|AMF Fluid Motion (frame interpolation)||",
@@ -143300,6 +143651,24 @@
       "key": "config.amd_fluid_motion_desc",
       "value": "Experimental. Inserts an AMD FRC-interpolated frame between each captured frame (x2), roughly doubling the streamed frame rate for smoother motion at the cost of ~1 frame of extra latency. Best when the client's display refresh is at least double the game's render rate. 'auto' leaves it off. Only applies to the native amdvce encoder.",
       "message": "zh.json value is identical to English at config.amd_fluid_motion_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/zh.json||zh|config.amd_fluid_motion_quality_desc|Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/zh.json",
+      "locale": "zh",
+      "key": "config.amd_fluid_motion_quality_desc",
+      "value": "Quality vs. GPU cost of the fluid-motion interpolation. Only used when AMF Fluid Motion is on. Balanced (default) uses AMD's high FRC profile with native motion search; Quality steps up to the super profile for cleaner interpolation at higher GPU cost; Performance drops to the low profile with faster motion search for weaker GPUs. Native amdvce encoder only.",
+      "message": "zh.json value is identical to English at config.amd_fluid_motion_quality_desc"
+    },
+    {
+      "fingerprint": "locale-untranslated-value|public/assets/locale/zh.json||zh|config.amd_fluid_motion_quality|AMF Fluid Motion Quality||",
+      "rule": "locale-untranslated-value",
+      "file": "public/assets/locale/zh.json",
+      "locale": "zh",
+      "key": "config.amd_fluid_motion_quality",
+      "value": "AMF Fluid Motion Quality",
+      "message": "zh.json value is identical to English at config.amd_fluid_motion_quality"
     },
     {
       "fingerprint": "locale-untranslated-value|public/assets/locale/zh.json||zh|config.amd_fluid_motion|AMF Fluid Motion (frame interpolation)||",

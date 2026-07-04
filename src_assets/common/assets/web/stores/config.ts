@@ -302,6 +302,7 @@ const defaultGroups = [
       amd_av1_screen_content: 'auto',
       amd_av1_latency_mode: 'auto',
       amd_fluid_motion: 'auto',
+      amd_fluid_motion_quality: 'balanced',
     },
   },
   {

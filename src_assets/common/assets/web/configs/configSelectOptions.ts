@@ -397,6 +397,23 @@ export function getConfigSelectOptions(
       ];
       return ensureIncludesCurrentValue(options, ctx.currentValue);
     }
+    case 'amd_fluid_motion_quality': {
+      const options = [
+        {
+          label: translateOr(t, 'config.amd_fluid_motion_quality_performance', 'Performance'),
+          value: 'performance',
+        },
+        {
+          label: translateOr(t, 'config.amd_fluid_motion_quality_balanced', 'Balanced'),
+          value: 'balanced',
+        },
+        {
+          label: translateOr(t, 'config.amd_fluid_motion_quality_quality', 'Quality'),
+          value: 'quality',
+        },
+      ];
+      return ensureIncludesCurrentValue(options, ctx.currentValue);
+    }
     case 'vt_software': {
       const options = [
         { label: translateOr(t, '_common.auto', 'Auto'), value: 'auto' },

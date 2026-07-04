@@ -1687,6 +1687,24 @@ namespace platf::dxgi {
       amf_cfg.av1_screen_content_tools = amf_tristate(config::video.amd.amd_av1_screen_content);
       amf_cfg.av1_encoding_latency_mode = config::video.amd.amd_av1_latency_mode;
       amf_cfg.fluid_motion = amf_tristate(config::video.amd.amd_fluid_motion);
+      // Fluid-motion quality preset -> FRC profile + motion-vector search. Left at the
+      // amf_config defaults (high profile + native search = "balanced") when unset.
+      if (const auto &q = config::video.amd.amd_fluid_motion_quality) {
+        switch (*q) {
+          case 0:  // performance
+            amf_cfg.fluid_motion_profile = 0;  // FRC_PROFILE_LOW
+            amf_cfg.fluid_motion_mv_search = 1;  // FRC_MV_SEARCH_PERFORMANCE
+            break;
+          case 2:  // quality
+            amf_cfg.fluid_motion_profile = 2;  // FRC_PROFILE_SUPER
+            amf_cfg.fluid_motion_mv_search = 0;  // FRC_MV_SEARCH_NATIVE
+            break;
+          default:  // 1 = balanced
+            amf_cfg.fluid_motion_profile = 1;  // FRC_PROFILE_HIGH
+            amf_cfg.fluid_motion_mv_search = 0;  // FRC_MV_SEARCH_NATIVE
+            break;
+        }
+      }
 
       if (!amf_d3d->create_encoder(amf_cfg, client_config, colorspace, buffer_format)) {
         return false;

@@ -82,7 +82,7 @@ namespace amf {
 
     // Create + configure the AMFFRC component for fluid motion. Returns false on failure.
     bool
-    init_frc();
+    init_frc(int profile, int mv_search);
 
     // Fluid-motion encode path: run the captured surface through FRC (x2), then encode
     // each FRC output. Returns the first encoded frame; extras go to pending_frc_outputs.

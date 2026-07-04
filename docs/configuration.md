@@ -3923,6 +3923,46 @@ They appear in the Frame Limiter section of the settings UI.
     </tr>
 </table>
 
+### amd_fluid_motion_quality
+
+<table>
+    <tr>
+        <td>Description</td>
+        <td colspan="2">
+            Quality vs. GPU cost of the fluid-motion interpolation. Only has an effect when
+            <a href="#amd_fluid_motion">amd_fluid_motion</a> is enabled. Each level maps AMD's
+            FRC profile and motion-vector search together, so a nonsensical combination can't
+            be selected.
+            @note{This option only applies to the native amdvce [encoder](#encoder) (not amdvce_legacy).}
+        </td>
+    </tr>
+    <tr>
+        <td>Default</td>
+        <td colspan="2">@code{}
+            balanced
+            @endcode</td>
+    </tr>
+    <tr>
+        <td>Example</td>
+        <td colspan="2">@code{}
+            amd_fluid_motion_quality = quality
+            @endcode</td>
+    </tr>
+    <tr>
+        <td rowspan="3">Choices</td>
+        <td>performance</td>
+        <td>low profile + fast motion search (weaker GPUs)</td>
+    </tr>
+    <tr>
+        <td>balanced</td>
+        <td>high profile + native motion search (default)</td>
+    </tr>
+    <tr>
+        <td>quality</td>
+        <td>super profile + native motion search (cleaner, higher GPU cost)</td>
+    </tr>
+</table>
+
 ## VideoToolbox Encoder
 
 ### vt_coder

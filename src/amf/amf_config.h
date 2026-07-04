@@ -139,6 +139,13 @@ namespace amf {
     // rate for smoother motion at the cost of ~1 frame of extra latency. Best on a
     // client whose display refresh is >= 2x the game's render rate.
     std::optional<bool> fluid_motion;
+
+    // FRC quality knobs, applied only when fluid_motion is on. Raw AMF enum values:
+    // fluid_motion_profile = AMF_FRC_PROFILE_TYPE (0=low, 1=high, 2=super),
+    // fluid_motion_mv_search = AMF_FRC_MV_SEARCH_MODE_TYPE (0=native, 1=performance).
+    // Defaults reproduce the original "balanced" behaviour (high profile + native search).
+    int fluid_motion_profile = 1;
+    int fluid_motion_mv_search = 0;
   };
 
 }  // namespace amf
