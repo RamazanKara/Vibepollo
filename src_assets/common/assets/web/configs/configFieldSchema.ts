@@ -80,6 +80,7 @@ const NUMBER_FIELD_OVERRIDES: Record<string, Partial<ConfigFieldDefinition>> = {
   nvenc_vbv_increase: { min: 0, max: 400, placeholder: '0' },
   amd_ltr_frames: { min: 0, max: 2, step: 1, placeholder: '0' },
   amd_input_queue_size: { min: 0, max: 16, step: 1, placeholder: '0' },
+  amd_qvbr_quality_level: { min: 0, max: 51, step: 1, placeholder: '0' },
   frame_limiter_fps_limit: { min: 0, max: 1000, step: 1, precision: 0, placeholder: '0' },
 };
 
