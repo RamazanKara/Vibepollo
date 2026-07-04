@@ -1178,7 +1178,10 @@ namespace amf {
       return false;
     }
     frc->SetProperty(AMF_FRC_ENGINE_TYPE, (amf_int64) FRC_ENGINE_DX11);
-    frc->SetProperty(AMF_FRC_MODE, (amf_int64) FRC_x2_PRESENT);
+    // FRC_ONLY_INTERPOLATED: QueryOutput yields the interpolated (midpoint) frame only; the
+    // real frame is encoded separately. FRC_x2_PRESENT is a present/swapchain-path mode that
+    // never emits through QueryOutput, so it produced zero output in this offline encode path.
+    frc->SetProperty(AMF_FRC_MODE, (amf_int64) FRC_ONLY_INTERPOLATED);
     frc->SetProperty(AMF_FRC_PROFILE, (amf_int64) profile);
     frc->SetProperty(AMF_FRC_MV_SEARCH_MODE, (amf_int64) mv_search);
     // No dependency on a future frame keeps the added latency to ~1 frame.
@@ -1304,45 +1307,56 @@ namespace amf {
       BOOST_LOG(warning) << "AMF: FRC SubmitInput failed, error: " << res;
     }
 
-    // Drain FRC outputs (the interpolated frame(s) plus the real frame) and encode
-    // each. The first captured frames only prime FRC, so zero outputs early is normal.
-    // Carry a keyframe request through FRC priming: if force_idr was asked while FRC still
-    // had no output, frc_pending_idr kept it, and it must land on the first real output.
+    // FRC runs in FRC_ONLY_INTERPOLATED mode, so QueryOutput yields the *interpolated* frame
+    // (the midpoint between the previous capture and this one) and never the real frame. We
+    // therefore always encode the captured frame ourselves, and additionally encode whatever
+    // interpolated frame FRC hands back, emitting it just *before* the real frame to keep
+    // temporal order: ... real(N-1), interp(N-1,N), real(N) ...  Encoding the real frame
+    // unconditionally also guarantees forward progress, so the encoder probe (which resubmits
+    // one static frame) can never hang.
     const bool want_idr = force_idr || frc_pending_idr;
 
     std::vector<amf_encoded_frame> encoded;
-    for (int i = 0; i < 4; ++i) {
+    if (want_idr) {
+      // On a keyframe, drop any buffered interpolated frame and send a clean real IDR;
+      // interpolating across a scene change / loss-recovery point is not worth the risk.
+      ::amf::AMFDataPtr stale;
+      while (frc->QueryOutput(&stale) == AMF_OK && stale) {
+        stale = nullptr;
+      }
+      auto real = encode_surface(surface, frc_emitted_index++, true, false);
+      if (!real.data.empty()) {
+        encoded.push_back(std::move(real));
+      }
+      frc_pending_idr = encoded.empty();  // encoder still priming -> retry the IDR next call
+    } else {
+      // Interpolated frame first (it sits between the previous real frame and this one)...
       ::amf::AMFDataPtr frc_out;
-      if (frc->QueryOutput(&frc_out) != AMF_OK || !frc_out) {
-        break;
+      if (frc->QueryOutput(&frc_out) == AMF_OK && frc_out) {
+        ::amf::AMFSurfacePtr interp(frc_out);
+        if (interp) {
+          auto ip = encode_surface(interp, frc_emitted_index++, false, false);
+          if (!ip.data.empty()) {
+            encoded.push_back(std::move(ip));
+          }
+        }
       }
-      ::amf::AMFSurfacePtr frc_surface(frc_out);
-      if (!frc_surface) {
-        continue;
-      }
-      // Only the first emitted frame of this call carries the keyframe.
-      bool idr = want_idr && encoded.empty();
-      auto pkt = encode_surface(frc_surface, frc_emitted_index++, idr, false);
-      if (!pkt.data.empty()) {
-        encoded.push_back(std::move(pkt));
+      // ...then the real captured frame.
+      auto real = encode_surface(surface, frc_emitted_index++, false, false);
+      if (!real.data.empty()) {
+        encoded.push_back(std::move(real));
       }
     }
 
-    // Verbose-only trace of the FRC frame flow (capture -> N outputs, emitted indices,
-    // whether this batch carries the keyframe) to diagnose client-side decode issues.
-    BOOST_LOG(debug) << "AMF FRC: capture=" << frame_index << " outputs=" << encoded.size()
-                     << " next_emit_idx=" << frc_emitted_index << (want_idr ? " want_idr" : "");
+    // Verbose-only trace: how many frames left the encoder for this capture. emitted=2 means
+    // FRC produced an interpolated frame (doubling works); emitted=1 is real-only (priming or
+    // FRC still not interpolating).
+    BOOST_LOG(debug) << "AMF FRC: capture=" << frame_index << " emitted=" << encoded.size()
+                     << " next_emit_idx=" << frc_emitted_index << (want_idr ? " idr" : "");
 
     if (encoded.empty()) {
-      // FRC produced nothing yet: it is still priming (it needs a second, distinct frame
-      // before it can interpolate), or the encoder probe is resubmitting one static frame.
-      // Encode the captured frame directly so the pipeline always makes forward progress.
-      // Without this, the probe's "encode until a packet appears" loop never terminates and
-      // the host hangs on startup / the stream never begins.
-      frc_pending_idr = false;
-      return encode_surface(surface, frc_emitted_index++, want_idr, false);
+      return result;  // encoder still priming; caller treats empty as "no packet this call"
     }
-    frc_pending_idr = false;  // keyframe (if requested) has now been emitted
     result = std::move(encoded.front());
     for (size_t i = 1; i < encoded.size(); ++i) {
       pending_frc_outputs.push_back(std::move(encoded[i]));
