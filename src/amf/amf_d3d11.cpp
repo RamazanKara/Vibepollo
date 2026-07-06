@@ -190,7 +190,14 @@ namespace amf {
         encoder->SetProperty(AMF_VIDEO_ENCODER_VBV_BUFFER_SIZE, vbv_buffer_size);
       }
       encoder->SetProperty(AMF_VIDEO_ENCODER_FRAMERATE, framerate);
-      if (config.enforce_hrd) encoder->SetProperty(AMF_VIDEO_ENCODER_ENFORCE_HRD, !!(*config.enforce_hrd));
+      if (config.enforce_hrd) {
+        encoder->SetProperty(AMF_VIDEO_ENCODER_ENFORCE_HRD, !!(*config.enforce_hrd));
+        // Belt-and-braces with HRD: hard-cap the peak access-unit size so no single frame
+        // (IDR / scene change) can overrun the stream FEC budget at high bitrate. ~4x the
+        // per-frame VBV budget leaves normal IDRs intact while stopping the runaway frames
+        // that froze RDNA4 at 200+ Mbps. Only applied when HRD enforcement is opted in.
+        if (*config.enforce_hrd) encoder->SetProperty(AMF_VIDEO_ENCODER_MAX_AU_SIZE, (amf_int64) (vbv_buffer_size * 4));
+      }
       encoder->SetProperty(AMF_VIDEO_ENCODER_IDR_PERIOD, (amf_int64) 0);
       encoder->SetProperty(AMF_VIDEO_ENCODER_DE_BLOCKING_FILTER, true);
       encoder->SetProperty(AMF_VIDEO_ENCODER_CABAC_ENABLE, (amf_int64)(config.h264_cabac ? AMF_VIDEO_ENCODER_CABAC : AMF_VIDEO_ENCODER_CALV));
@@ -275,7 +282,11 @@ namespace amf {
         encoder->SetProperty(AMF_VIDEO_ENCODER_HEVC_VBV_BUFFER_SIZE, vbv_buffer_size);
       }
       encoder->SetProperty(AMF_VIDEO_ENCODER_HEVC_FRAMERATE, framerate);
-      if (config.enforce_hrd) encoder->SetProperty(AMF_VIDEO_ENCODER_HEVC_ENFORCE_HRD, !!(*config.enforce_hrd));
+      if (config.enforce_hrd) {
+        encoder->SetProperty(AMF_VIDEO_ENCODER_HEVC_ENFORCE_HRD, !!(*config.enforce_hrd));
+        // See H.264 above: cap the peak AU size (~4x per-frame VBV) so no frame overruns FEC.
+        if (*config.enforce_hrd) encoder->SetProperty(AMF_VIDEO_ENCODER_HEVC_MAX_AU_SIZE, (amf_int64) (vbv_buffer_size * 4));
+      }
       encoder->SetProperty(AMF_VIDEO_ENCODER_HEVC_HEADER_INSERTION_MODE, (amf_int64) AMF_VIDEO_ENCODER_HEVC_HEADER_INSERTION_MODE_IDR_ALIGNED);
       // Infinite GOP (no periodic IDR), matching both FFmpeg's hevc_amf path (which
       // uses an infinite GOP - see video.cpp "infinite GOP length") and the native AV1
@@ -359,7 +370,11 @@ namespace amf {
         encoder->SetProperty(AMF_VIDEO_ENCODER_AV1_VBV_BUFFER_SIZE, vbv_buffer_size);
       }
       encoder->SetProperty(AMF_VIDEO_ENCODER_AV1_FRAMERATE, framerate);
-      if (config.enforce_hrd) encoder->SetProperty(AMF_VIDEO_ENCODER_AV1_ENFORCE_HRD, !!(*config.enforce_hrd));
+      if (config.enforce_hrd) {
+        encoder->SetProperty(AMF_VIDEO_ENCODER_AV1_ENFORCE_HRD, !!(*config.enforce_hrd));
+        // See H.264 above: cap the peak compressed frame size (~4x per-frame VBV) to fit FEC.
+        if (*config.enforce_hrd) encoder->SetProperty(AMF_VIDEO_ENCODER_AV1_MAX_COMPRESSED_FRAME_SIZE, (amf_int64) (vbv_buffer_size * 4));
+      }
       encoder->SetProperty(AMF_VIDEO_ENCODER_AV1_ALIGNMENT_MODE, (amf_int64) AMF_VIDEO_ENCODER_AV1_ALIGNMENT_MODE_NO_RESTRICTIONS);
       encoder->SetProperty(AMF_VIDEO_ENCODER_AV1_GOP_SIZE, (amf_int64) 0);
       if (config.preanalysis) encoder->SetProperty(AMF_VIDEO_ENCODER_AV1_PRE_ANALYSIS_ENABLE, !!(*config.preanalysis));
@@ -919,14 +934,11 @@ namespace amf {
                            << " after retries, dropping frame " << frame_index
                            << " (in_flight=" << hwsurfaces_in_queue << ")";
         frame_rfi_flags.erase(frame_index);
-        // Treat sustained INPUT_FULL exhaustion as a submit failure for the
-        // watchdog: if the pipeline stays jammed for ~1s of frames the upper
-        // layer will reinit instead of silently producing no output forever.
-        if (++consecutive_submit_failures >= max_consecutive_failures) {
-          BOOST_LOG(error) << "AMF: " << consecutive_submit_failures
-                           << " consecutive frames with INPUT_FULL exhaustion, signaling reinit";
-          result.fatal = true;
-        }
+        // INPUT_FULL is backpressure, not a fault: the encoder queue is momentarily full.
+        // Reinitializing does NOT help (a fresh encoder hits the same wall) and, during the
+        // startup probe, the reinit loop deadlocks the whole service (UI + discovery down).
+        // Drop the frame and keep going — dropping relieves the queue, so it is self-limiting.
+        // The consecutive-submit watchdog stays reserved for genuine SubmitInput errors below.
         return result;
       }
     }
@@ -981,11 +993,14 @@ namespace amf {
         }
       }
       if (!output_data) {
-        // Encoder needs more input or no output yet (pipeline filling).
-        // Track this in case the pipeline gets stuck (driver hang, PA stall, etc.)
-        if (++consecutive_empty_outputs >= max_consecutive_failures) {
-          BOOST_LOG(error) << "AMF: " << consecutive_empty_outputs << " consecutive frames with no encoder output, signaling reinit";
-          result.fatal = true;
+        // No output yet: the pipeline is still filling (normal at start) or the encoder is
+        // genuinely stalled. Either way we do NOT reinit — the fatal reinit here was proven to
+        // loop and deadlock the whole service. Keep the host alive and emit nothing this frame;
+        // a real stall surfaces as a black stream the client can recover from (IDR request /
+        // reconnect) instead of a dead host. Device loss is still caught above and does reinit.
+        if (++consecutive_empty_outputs % max_consecutive_failures == 0) {
+          BOOST_LOG(warning) << "AMF: no encoder output for " << consecutive_empty_outputs
+                             << " frames; encoder may be stalled (stream stays black until it recovers)";
         }
         return result;
       }

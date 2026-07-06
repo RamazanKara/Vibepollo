@@ -3771,7 +3771,14 @@ namespace video {
         auto probe_mail = std::make_shared<safe::mail_raw_t>();
         auto packets = probe_mail->queue<packet_t>(mail::video_packets);
 
-        while (!packets->peek()) {
+        // Bound the probe: a now-non-fatal encoder that simply never emits a packet (e.g. a
+        // driver stall) must fail the probe, not spin here forever and hang startup.
+        for (int probe_attempts = 0; !packets->peek(); ++probe_attempts) {
+          if (probe_attempts >= 256) {
+            BOOST_LOG(error) << "Encoder probe produced no packet after "sv << probe_attempts
+                             << " attempts; treating "sv << codec_name << " as unsupported."sv;
+            return util::false_v<util::optional_t<int>>;
+          }
           if (encode(1, *session, packets, nullptr, {}, {}, {})) {
             return util::false_v<util::optional_t<int>>;
           }
