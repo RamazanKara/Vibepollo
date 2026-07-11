@@ -528,7 +528,7 @@ namespace config {
       (int) amd::coder_e::_auto,  // coder
       std::nullopt,  // QVBR quality (driver default)
       0,  // LTR frames (disabled)
-      0,  // input queue size (driver default)
+      4,  // input queue size (bounded streaming default)
       std::nullopt,  // Smart Access Video (driver default)
       std::nullopt,  // low-latency mode (driver default)
       std::nullopt,  // high-motion quality boost (driver default)
@@ -1238,7 +1238,13 @@ namespace config {
     int_f(vars, "amd_ltr_frames", video.amd.amd_ltr_frames);
     video.amd.amd_ltr_frames = std::clamp(video.amd.amd_ltr_frames, 0, 2);
     int_f(vars, "amd_input_queue_size", video.amd.amd_input_queue_size);
-    video.amd.amd_input_queue_size = std::clamp(video.amd.amd_input_queue_size, 0, 32);
+    if (video.amd.amd_input_queue_size < 0 || video.amd.amd_input_queue_size > 32) {
+      BOOST_LOG(warning) << "config: amd_input_queue_size must be between 0 and 32, clamping: "sv << video.amd.amd_input_queue_size;
+      video.amd.amd_input_queue_size = std::clamp(video.amd.amd_input_queue_size, 0, 32);
+    }
+
+    // Curated opt-in native-AMF feature knobs. Default "auto" leaves the AMF
+    // driver default untouched, so none of these change behavior unless enabled.
     int_f(vars, "amd_smart_access_video", video.amd.amd_smart_access_video, amd::tristate_from_view);
     int_f(vars, "amd_lowlatency_mode", video.amd.amd_lowlatency_mode, amd::tristate_from_view);
     int_f(vars, "amd_high_motion_quality_boost", video.amd.amd_high_motion_quality_boost, amd::tristate_from_view);

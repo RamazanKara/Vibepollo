@@ -73,6 +73,14 @@ namespace {
     return result == fake_amf_result_e::ok && submit_count == 3 && wait_count == 2;
   }
 
+  bool exhausted_backpressure_reinitializes_without_owned_surfaces() {
+    using amf::lifecycle::submit_backpressure_requires_reinit;
+    return !submit_backpressure_requires_reinit(1, 120, false, 10s) &&
+           !submit_backpressure_requires_reinit(119, 120, true, 1999ms) &&
+           submit_backpressure_requires_reinit(120, 120, false, 0ms) &&
+           submit_backpressure_requires_reinit(1, 120, true, 2s);
+  }
+
   bool recovery_state_changes_only_after_accepted_input() {
     std::array<bool, 4> slots_valid {true, true, false, false};
     std::array<uint64_t, 4> slot_frames {10, 20, 0, 0};
@@ -133,6 +141,9 @@ namespace {
       });
 
     return !normal.enabled && normal.lookahead_depth == 0 &&
+           !amf::lifecycle::rate_control_supports_adaptive_quantization(0) &&
+           amf::lifecycle::rate_control_supports_adaptive_quantization(3) &&
+           amf::lifecycle::rate_control_supports_adaptive_quantization(std::nullopt) &&
            explicit_pa.enabled && explicit_pa.lookahead_depth == 1 && !explicit_pa.enabled_for_rate_control &&
            qvbr.enabled && qvbr.lookahead_depth == 1 && qvbr.enabled_for_rate_control &&
            hqvbr.enabled && hqvbr.lookahead_depth == 1 && hqvbr.enabled_for_rate_control &&
@@ -203,6 +214,82 @@ namespace {
     return rotated && *rotated == 1 && reused && *reused == 0 && !unavailable;
   }
 
+  bool surface_pool_can_prime_a_retaining_driver() {
+    constexpr auto active_slots = amf::lifecycle::input_surface_count_for_pipeline(4, 1);
+    static_assert(active_slots == 6);
+
+    std::array<amf::lifecycle::input_surface_state_t, amf::lifecycle::maximum_input_surface_count> slots;
+    std::deque<std::size_t> retained;
+    std::size_t accepted = 0;
+    std::size_t outputs = 0;
+
+    // This fake driver retains four inputs before producing its first output.
+    // A three-surface pool deadlocks before submission four even without PA; the
+    // queue-aware pool must keep ownership exact and make enough forward progress.
+    for (uint64_t frame = 1; frame <= 8; ++frame) {
+      std::optional<std::size_t> free_slot;
+      for (std::size_t slot = 0; slot < active_slots; ++slot) {
+        if (slots[slot].state == amf::lifecycle::input_surface_state_e::free) {
+          free_slot = slot;
+          break;
+        }
+      }
+      if (!free_slot) {
+        return false;
+      }
+
+      auto &input = slots[*free_slot];
+      input.state = amf::lifecycle::input_surface_state_e::reserved;
+      input.release_notified = false;
+      amf::lifecycle::on_input_accepted(input, frame);
+      retained.push_back(*free_slot);
+      ++accepted;
+
+      if (retained.size() >= 4) {
+        auto &released = slots[retained.front()];
+        retained.pop_front();
+        if (!amf::lifecycle::on_surface_released(released)) {
+          return false;
+        }
+        ++outputs;
+      }
+    }
+
+    return accepted == 8 && outputs == 5 &&
+           amf::lifecycle::input_surface_count_for_lookahead(0) == 4 &&
+           amf::lifecycle::input_surface_count_for_lookahead(2) == 8 &&
+           amf::lifecycle::input_surface_count_for_pipeline(1, 0) == 4 &&
+           amf::lifecycle::input_surface_count_for_pipeline(4, 0) == 6 &&
+           amf::lifecycle::input_surface_count_for_pipeline(16, 1) == 18 &&
+           amf::lifecycle::input_surface_count_for_pipeline(32, 100) ==
+             amf::lifecycle::maximum_input_surface_count;
+  }
+
+  bool output_poll_rearm_survives_concurrent_submission() {
+    const uint64_t queried_through = 10;
+    return amf::lifecycle::should_disarm_output_poll(queried_through, 10, false, 0) &&
+           !amf::lifecycle::should_disarm_output_poll(queried_through, 10, false, 1) &&
+           !amf::lifecycle::should_disarm_output_poll(queried_through, 11, false, 0) &&
+           !amf::lifecycle::should_disarm_output_poll(queried_through, 10, true, 0);
+  }
+
+  bool asynchronous_pipeline_catches_up_to_current_output() {
+    using amf::lifecycle::output_coalesce_budget;
+    using amf::lifecycle::output_coalesce_target_reached;
+
+    return output_coalesce_budget(30) == std::chrono::milliseconds(32) &&
+           output_coalesce_budget(60) == std::chrono::milliseconds(16) &&
+           output_coalesce_budget(120) == std::chrono::milliseconds(8) &&
+           output_coalesce_budget(240) == std::chrono::milliseconds(4) &&
+           output_coalesce_budget(1000) == std::chrono::milliseconds(1) &&
+           !output_coalesce_target_reached(11, 0, 10, 10, 10) &&
+           !output_coalesce_target_reached(11, 0, 10, 11, 10) &&
+           output_coalesce_target_reached(11, 0, 10, 11, 11) &&
+           output_coalesce_target_reached(11, 0, 10, 12, 12) &&
+           !output_coalesce_target_reached(11, 1, 10, 10, 10) &&
+           output_coalesce_target_reached(11, 1, 10, 11, 10);
+  }
+
   bool teardown_timeout_returns_control_before_a_wedged_destructor() {
     struct slow_resource_t {
       std::atomic<bool> *destroyed;
@@ -235,11 +322,15 @@ namespace {
 int main() {
   return synchronous_release_during_submit_is_reentrant_safe() &&
              backpressure_retries_the_same_submission_until_accepted() &&
+             exhausted_backpressure_reinitializes_without_owned_surfaces() &&
              recovery_state_changes_only_after_accepted_input() &&
              preanalysis_dependent_rate_control_is_planned_natively() &&
              preanalysis_pipeline_primes_and_drains_in_order() &&
              automatic_h264_coder_preserves_driver_default() &&
              repeated_input_rotates_away_from_a_lookahead_owned_surface() &&
+             surface_pool_can_prime_a_retaining_driver() &&
+             output_poll_rearm_survives_concurrent_submission() &&
+             asynchronous_pipeline_catches_up_to_current_output() &&
              teardown_timeout_returns_control_before_a_wedged_destructor() ?
            0 :
            1;
@@ -253,6 +344,10 @@ TEST(NativeAmfReview, SynchronousReleaseDuringSubmitIsReentrantSafe) {
 
 TEST(NativeAmfReview, BackpressureRetriesUntilAccepted) {
   EXPECT_TRUE(backpressure_retries_the_same_submission_until_accepted());
+}
+
+TEST(NativeAmfReview, ExhaustedBackpressureReinitializesWithoutOwnedSurfaces) {
+  EXPECT_TRUE(exhausted_backpressure_reinitializes_without_owned_surfaces());
 }
 
 TEST(NativeAmfReview, RecoveryStateChangesOnlyAfterAcceptance) {
@@ -273,6 +368,18 @@ TEST(NativeAmfReview, AutomaticH264CoderPreservesDriverDefault) {
 
 TEST(NativeAmfReview, RepeatedInputRotatesAwayFromLookaheadOwnedSurface) {
   EXPECT_TRUE(repeated_input_rotates_away_from_a_lookahead_owned_surface());
+}
+
+TEST(NativeAmfReview, SurfacePoolPrimesRetainingDriver) {
+  EXPECT_TRUE(surface_pool_can_prime_a_retaining_driver());
+}
+
+TEST(NativeAmfReview, OutputPollRearmSurvivesConcurrentSubmission) {
+  EXPECT_TRUE(output_poll_rearm_survives_concurrent_submission());
+}
+
+TEST(NativeAmfReview, AsynchronousPipelineCatchesUpToCurrentOutput) {
+  EXPECT_TRUE(asynchronous_pipeline_catches_up_to_current_output());
 }
 
 TEST(NativeAmfReview, TeardownTimeoutReturnsControl) {

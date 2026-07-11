@@ -156,7 +156,7 @@
     "amd_high_motion_quality_boost": "AMF High-Motion Quality Boost",
     "amd_high_motion_quality_boost_desc": "Enables the native AMF high-motion quality boost. Automatic leaves the property at the AMD driver default. Explicit aggressive overrides are rejected while multiple native AMF sessions are active.",
     "amd_input_queue_size": "AMF Input Queue Size",
-    "amd_input_queue_size_desc": "Sets the native AMF input queue size from 1 to 32. Use 0 to leave the property at the AMD driver default.",
+    "amd_input_queue_size_desc": "Number of frames the native AMF encoder keeps queued for input. The default 4 keeps the hardware fed with little queueing; 1 can starve some drivers, while larger values up to 32 trade latency for additional headroom. Use 0 to leave the property at the AMD driver default.",
     "amd_lowlatency_mode": "AMF Low-Latency Mode",
     "amd_lowlatency_mode_desc": "Overrides the native H.264/HEVC low-latency property. Automatic is recommended because some AMD drivers become unstable when this property is forced. Explicit aggressive overrides are rejected while multiple native AMF sessions are active.",
     "amd_ltr_frames": "AMF Long-Term Reference Frames",

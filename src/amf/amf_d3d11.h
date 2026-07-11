@@ -153,16 +153,20 @@ namespace amf {
     void
     on_input_surface_released(std::size_t slot_index) noexcept;
 
+    bool
+    ensure_input_surface_count(std::size_t count);
+
     ID3D11Device *device = nullptr;
     ::amf::AMFFactory *factory = nullptr;
     ::amf::AMFContextPtr context;
     ::amf::AMFComponentPtr encoder;
     HMODULE amf_dll = nullptr;
 
-    // The converter renders directly into a reserved ring surface. AMF may retain an
-    // accepted native surface while encoding it, so a slot is recycled only after the
-    // output pump observes the matching output PTS.
-    static constexpr std::size_t INPUT_SURFACE_RING_SIZE = 3;
+    // The converter renders directly into a reserved pool surface. AMF may retain an
+    // accepted native surface while encoding it, so a slot is recycled exclusively by
+    // AMFSurfaceObserver. The pool starts at the queue/lookahead-aware working depth
+    // and allocates additional slots lazily during a transient driver backlog.
+    static constexpr std::size_t INPUT_SURFACE_RING_SIZE = lifecycle::maximum_input_surface_count;
     using input_surface_state_e = lifecycle::input_surface_state_e;
 
     struct input_surface_release_observer_t final: ::amf::AMFSurfaceObserver {
@@ -176,6 +180,9 @@ namespace amf {
     };
     std::array<input_surface_slot_t, INPUT_SURFACE_RING_SIZE> input_surface_ring;
     std::array<input_surface_release_observer_t, INPUT_SURFACE_RING_SIZE> input_surface_release_observers;
+    std::size_t active_input_surface_count = lifecycle::minimum_input_surface_count;
+    std::size_t encoder_input_queue_size = lifecycle::default_amf_input_queue_size;
+    D3D11_TEXTURE2D_DESC input_surface_desc {};
     std::size_t next_input_surface_slot = 0;
     std::optional<std::size_t> prepared_input_surface_slot;
     std::optional<std::size_t> last_rendered_input_surface_slot;
@@ -190,9 +197,6 @@ namespace amf {
     uint64_t last_rfi_ltr_index = 0;
     int max_ltr_frames = 0;
     bool rfi_enabled = false;
-
-    // Whether the driver supports QUERY_TIMEOUT (FFmpeg-style safety check)
-    bool query_timeout_supported = false;
 
     // Current LTR state for RFI.
     // Slot 0 is reserved as the IDR baseline (set on every IDR, never overwritten by
@@ -216,16 +220,21 @@ namespace amf {
     std::unordered_map<uint64_t, bool> frame_rfi_flags;
     uint64_t last_completed_frame_index = 0;
     uint64_t last_submitted_frame_index = 0;
-    bool has_completed_output = false;
     bool output_fatal = false;
     bool drain_requested = false;
     bool drain_complete = false;
+    bool output_poll_requested = false;
+    std::size_t active_output_poll_waiters = 0;
 
-    // Submitted surfaces that have not yet been retrieved by the output pump.
-    // This drives the progress watchdog and diagnostics.
-    int hwsurfaces_in_queue = 0;
+    // Input ownership and output production are deliberately tracked separately.
+    // AMF explicitly does not guarantee a one-to-one input/output relationship;
+    // AMFSurfaceObserver owns the first count while QueryOutput owns the totals.
+    std::size_t input_surfaces_in_flight = 0;
+    uint64_t accepted_input_count = 0;
+    uint64_t completed_output_count = 0;
     bool preanalysis_enabled = false;
     int preanalysis_lookahead_depth = 0;
+    bool query_timeout_supported = false;
     bool user_configured_rate_control = false;
     bool enforce_hrd_enabled = false;
 
@@ -242,11 +251,13 @@ namespace amf {
     int consecutive_submit_failures = 0;
     int consecutive_surface_failures = 0;
     int consecutive_query_failures = 0;
-    // Consecutive submissions whose own output missed the bounded wait. Older ready
-    // frames may still have been returned in a catch-up batch.
+    int consecutive_output_failures = 0;
+    // Consecutive submissions whose bounded coalescing target was not reached.
     int consecutive_catchup_misses = 0;
+    uint64_t catchup_batch_count = 0;
     int max_consecutive_failures = 60;  // Set to ~1s of frames in create_encoder()
     std::chrono::steady_clock::time_point last_output_progress {};
+    std::chrono::steady_clock::time_point submit_backpressure_started {};
 
     std::string last_error_string;
   };

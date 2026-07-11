@@ -49,10 +49,46 @@ namespace amf::lifecycle {
     return mode >= 4 && mode <= 6;  // QVBR, HQVBR, HQCBR
   }
 
+  inline bool rate_control_supports_adaptive_quantization(const std::optional<int> &rate_control) noexcept {
+    // All three AMF encoders use zero for CONSTANT_QP. AMD documents VBAQ/CAQ
+    // as incompatible with CQP, so an enabled-by-default AQ setting must not turn
+    // an otherwise valid CQP request into a driver-dependent configuration.
+    return !rate_control || *rate_control != 0;
+  }
+
   // AMD documents a lookahead depth of one for the ultra-low-latency usage
   // preset. Keep native streaming on that bounded pipeline instead of inheriting
   // the 11-frame default used by transcoding/high-quality presets.
   inline constexpr int low_latency_preanalysis_lookahead_depth = 1;  ///< ULL PreAnalysis depth documented by AMD.
+
+  // Native encoders can retain several inputs before the first output even
+  // without B-frames or PreAnalysis. Three surfaces proved too small on current
+  // Radeon drivers: once every wrapper was retained, the host could no longer
+  // submit the input needed to advance the VCN queue. Keep two transit surfaces
+  // beyond AMF's configured queue and additional room for PA lookahead. Production
+  // can grow lazily to AMF's documented maximum queue plus that transit headroom.
+  inline constexpr std::size_t minimum_input_surface_count = 4;
+  inline constexpr std::size_t input_surface_transit_count = 2;
+  inline constexpr std::size_t default_amf_input_queue_size = 16;
+  inline constexpr std::size_t maximum_amf_input_queue_size = 32;
+  inline constexpr std::size_t maximum_input_surface_count =
+    maximum_amf_input_queue_size + input_surface_transit_count;
+
+  inline constexpr std::size_t input_surface_count_for_lookahead(int lookahead_depth) noexcept {
+    const auto requested = minimum_input_surface_count +
+                           static_cast<std::size_t>(std::max(0, lookahead_depth)) * 2;
+    return std::clamp(requested, minimum_input_surface_count, maximum_input_surface_count);
+  }
+
+  inline constexpr std::size_t input_surface_count_for_pipeline(int input_queue_size,
+                                                                 int lookahead_depth) noexcept {
+    const auto queue_depth = std::clamp<std::size_t>(
+      static_cast<std::size_t>(std::max(1, input_queue_size)),
+      1,
+      maximum_amf_input_queue_size);
+    const auto queue_requirement = queue_depth + input_surface_transit_count;
+    return std::max(queue_requirement, input_surface_count_for_lookahead(lookahead_depth));
+  }
 
   /**
    * @brief Resolved PreAnalysis state for one encoder configuration.
@@ -121,12 +157,72 @@ namespace amf::lifecycle {
   /**
    * @brief Determine whether delayed output is expected after accepted inputs.
    *
-   * @param accepted_without_output Accepted input count since the last output.
+   * @param accepted_input_count Total accepted input count.
    * @param lookahead_depth Configured lookahead depth.
    * @return True once the encoder has more inputs than its lookahead retains.
    */
-  inline bool delayed_output_is_expected(int accepted_without_output, int lookahead_depth) noexcept {
-    return accepted_without_output > std::max(0, lookahead_depth);
+  inline bool delayed_output_is_expected(uint64_t accepted_input_count, int lookahead_depth) noexcept {
+    return accepted_input_count > static_cast<uint64_t>(std::max(0, lookahead_depth));
+  }
+
+  inline constexpr bool should_disarm_output_poll(uint64_t queried_through_input,
+                                                  uint64_t accepted_input_count,
+                                                  bool drain_requested,
+                                                  std::size_t active_poll_waiters) noexcept {
+    // A no-data QueryOutput result only describes that call. It does not guarantee
+    // that an already-submitted hardware job cannot complete a moment later. A
+    // bounded encode-side waiter therefore owns a polling lease; disarming
+    // underneath that waiter strands the completion until the next input.
+    return !drain_requested && active_poll_waiters == 0 &&
+           queried_through_input == accepted_input_count;
+  }
+
+  // Give the output pump a chance to coalesce a just-completed frame into the
+  // current encode call without serializing input submission on the current
+  // frame. Return before the negotiated frame deadline so a genuine slow path can
+  // still pipeline. The 32-millisecond ceiling covers a slow 30 Hz path while
+  // preserving the tested eight-millisecond lease at 120 Hz; normal output wakes
+  // the condition variable around 3-4 ms.
+  inline constexpr std::chrono::milliseconds output_coalesce_budget(int framerate) noexcept {
+    const auto frame_period = framerate > 0 ?
+                                std::chrono::milliseconds((1000 + framerate - 1) / framerate) :
+                                std::chrono::milliseconds(17);
+    return std::clamp(
+      frame_period > std::chrono::milliseconds(1) ?
+        frame_period - std::chrono::milliseconds(1) :
+        std::chrono::milliseconds(1),
+      std::chrono::milliseconds(1),
+      std::chrono::milliseconds(32));
+  }
+
+  inline bool submit_backpressure_requires_reinit(
+    int consecutive_exhaustions,
+    int failure_threshold,
+    bool sequence_start_known,
+    std::chrono::steady_clock::duration time_since_sequence_start) noexcept {
+    return consecutive_exhaustions >= std::max(1, failure_threshold) ||
+           (sequence_start_known && time_since_sequence_start >= std::chrono::seconds(2));
+  }
+
+  inline constexpr bool output_coalesce_target_reached(uint64_t submitted_frame_index,
+                                                        int lookahead_depth,
+                                                        uint64_t completed_before_submission,
+                                                        uint64_t completed_after_submission,
+                                                        uint64_t last_completed_frame_index) noexcept {
+    // Without lookahead, accepting any older completion makes a one-frame backlog
+    // permanent: every later call wakes on its predecessor and returns before its
+    // own output is ready. Catch all the way up to this submission. A lookahead
+    // encoder intentionally cannot emit the newest input yet, so any new output is
+    // the correct bounded-progress target there.
+    if (lookahead_depth <= 0) {
+      return completed_after_submission > completed_before_submission &&
+             last_completed_frame_index >= submitted_frame_index;
+    }
+
+    // AMF does not promise one output per input, so an absolute accepted-output
+    // count can retain permanent debt after a legitimate skipped frame. For PA,
+    // any completion newer than the pre-submission snapshot is bounded progress.
+    return completed_after_submission > completed_before_submission;
   }
 
   /**
@@ -155,16 +251,18 @@ namespace amf::lifecycle {
   std::optional<std::size_t> select_repeat_surface(
     const std::array<Slot, SlotCount> &slots,
     std::size_t source_slot,
-    std::size_t next_slot) noexcept {
+    std::size_t next_slot,
+    std::size_t active_slot_count = SlotCount) noexcept {
     static_assert(SlotCount > 0);
-    if (source_slot >= SlotCount) {
+    const auto bounded_slot_count = std::clamp<std::size_t>(active_slot_count, 1, SlotCount);
+    if (source_slot >= bounded_slot_count) {
       return std::nullopt;
     }
     if (slots[source_slot].state == input_surface_state_e::free) {
       return source_slot;
     }
-    for (std::size_t offset = 0; offset < SlotCount; ++offset) {
-      const auto candidate = (next_slot + offset) % SlotCount;
+    for (std::size_t offset = 0; offset < bounded_slot_count; ++offset) {
+      const auto candidate = (next_slot + offset) % bounded_slot_count;
       if (slots[candidate].state == input_surface_state_e::free) {
         return candidate;
       }

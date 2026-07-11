@@ -57,8 +57,37 @@ namespace amf {
 
     auto &slot = input_surface_ring[slot_index];
     if (lifecycle::on_surface_released(slot)) {
+      if (input_surfaces_in_flight > 0) {
+        --input_surfaces_in_flight;
+      }
       state_cv.notify_all();
     }
+  }
+
+  bool
+  amf_d3d11::ensure_input_surface_count(std::size_t count) {
+    count = std::min(count, input_surface_ring.size());
+    static const GUID AMFTextureArrayIndexGUID = { 0x28115527, 0xe7c3, 0x4b66, { 0x99, 0xd3, 0x4f, 0x2a, 0xe6, 0xb4, 0x7f, 0xaf } };
+    int array_index = 0;
+
+    for (std::size_t index = 0; index < count; ++index) {
+      auto &slot = input_surface_ring[index];
+      if (slot.texture) {
+        continue;
+      }
+
+      const auto hr = device->CreateTexture2D(
+        &input_surface_desc,
+        nullptr,
+        slot.texture.ReleaseAndGetAddressOf());
+      if (FAILED(hr)) {
+        BOOST_LOG(error) << "AMF: failed to create direct-render input texture " << index
+                         << ", HRESULT: 0x" << std::hex << hr;
+        return false;
+      }
+      slot.texture->SetPrivateData(AMFTextureArrayIndexGUID, sizeof(array_index), &array_index);
+    }
+    return true;
   }
 
   bool
@@ -165,6 +194,11 @@ namespace amf {
     preanalysis_lookahead_depth = 0;
 
     const auto preanalysis_plan = lifecycle::resolve_preanalysis(config.rc_mode, config.preanalysis);
+    const bool adaptive_quantization_supported =
+      lifecycle::rate_control_supports_adaptive_quantization(config.rc_mode);
+    if (!adaptive_quantization_supported && config.vbaq && *config.vbaq) {
+      BOOST_LOG(info) << "AMF: disabling adaptive quantization because CQP rate control is selected";
+    }
     const wchar_t *rate_control_property = video_format == 0 ? AMF_VIDEO_ENCODER_RATE_CONTROL_METHOD :
                                            video_format == 1 ? AMF_VIDEO_ENCODER_HEVC_RATE_CONTROL_METHOD :
                                                                AMF_VIDEO_ENCODER_AV1_RATE_CONTROL_METHOD;
@@ -361,8 +395,12 @@ namespace amf {
           return false;
         }
       }
-      if (config.vbaq && !set_verified_bool(AMF_VIDEO_ENCODER_ENABLE_VBAQ, !!(*config.vbaq), "H.264 VBAQ")) return false;
-      if (!set_required(AMF_VIDEO_ENCODER_B_PIC_PATTERN, (amf_int64) 0, "H.264 B-picture pattern")) return false;
+      if ((config.vbaq || !adaptive_quantization_supported) &&
+          !set_verified_bool(
+            AMF_VIDEO_ENCODER_ENABLE_VBAQ,
+            adaptive_quantization_supported && config.vbaq && !!(*config.vbaq),
+            "H.264 VBAQ")) return false;
+      encoder->SetProperty(AMF_VIDEO_ENCODER_B_PIC_PATTERN, (amf_int64) 0);
       // LOWLATENCY_MODE and INPUT_QUEUE_SIZE: only set when user opts in.
       // Matches FFmpeg amfenc behavior (FFmpeg never forces these properties).
       // Forcing them to true/1 has been observed to expose latent AMD driver
@@ -463,8 +501,12 @@ namespace amf {
       // native HEVC (freeze on the first keyframe need) while native AV1 and FFmpeg
       // hevc_amf, neither of which sets it, ran clean on the same cards. force_idr
       // keyframes are driven per-surface via HEVC_FORCE_PICTURE_TYPE, independent of this.
-      if (!set_required(AMF_VIDEO_ENCODER_HEVC_GOP_SIZE, (amf_int64) 0, "HEVC infinite GOP")) return false;
-      if (config.vbaq && !set_verified_bool(AMF_VIDEO_ENCODER_HEVC_ENABLE_VBAQ, !!(*config.vbaq), "HEVC VBAQ")) return false;
+      encoder->SetProperty(AMF_VIDEO_ENCODER_HEVC_GOP_SIZE, (amf_int64) 0);
+      if ((config.vbaq || !adaptive_quantization_supported) &&
+          !set_verified_bool(
+            AMF_VIDEO_ENCODER_HEVC_ENABLE_VBAQ,
+            adaptive_quantization_supported && config.vbaq && !!(*config.vbaq),
+            "HEVC VBAQ")) return false;
       // LOWLATENCY_MODE and INPUT_QUEUE_SIZE: only set when user opts in.
       // See H.264 block above for rationale (FFmpeg-aligned default behavior).
       if (config.lowlatency_mode && !set_verified_bool(AMF_VIDEO_ENCODER_HEVC_LOWLATENCY_MODE, *config.lowlatency_mode, "HEVC low-latency mode")) return false;
@@ -579,7 +621,12 @@ namespace amf {
       // The codec-unqualified amd_vbaq setting maps to AV1 content-adaptive
       // quantization. PAQ remains a fallback for callers that configure the
       // lower-level AMF API directly.
-      if (config.vbaq) {
+      if (!adaptive_quantization_supported) {
+        if (!set_verified_int64(
+              AMF_VIDEO_ENCODER_AV1_AQ_MODE,
+              AMF_VIDEO_ENCODER_AV1_AQ_MODE_NONE,
+              "AV1 adaptive quantization")) return false;
+      } else if (config.vbaq) {
         if (!set_verified_int64(
               AMF_VIDEO_ENCODER_AV1_AQ_MODE,
               static_cast<amf_int64>(*config.vbaq ? AMF_VIDEO_ENCODER_AV1_AQ_MODE_CAQ : AMF_VIDEO_ENCODER_AV1_AQ_MODE_NONE),
@@ -643,6 +690,16 @@ namespace amf {
     if (preanalysis_plan.enabled) {
       preanalysis_enabled = true;
       preanalysis_lookahead_depth = requested_depth;
+    }
+
+    // Sunshine's legacy AMF path explicitly disables rate-control frame skipping.
+    // Keep native packet/PTS semantics identical and do not let ULL usage presets
+    // silently discard a frame when the bitrate controller is under pressure.
+    const wchar_t *skip_frame_property = video_format == 0 ? AMF_VIDEO_ENCODER_RATE_CONTROL_SKIP_FRAME_ENABLE :
+                                           video_format == 1 ? AMF_VIDEO_ENCODER_HEVC_RATE_CONTROL_SKIP_FRAME_ENABLE :
+                                                               AMF_VIDEO_ENCODER_AV1_RATE_CONTROL_SKIP_FRAME;
+    if (!set_verified_bool(skip_frame_property, false, "rate-control frame skipping")) {
+      return false;
     }
 
     if (config.qvbr_quality_level && config.rc_mode && *config.rc_mode == 4) {
@@ -875,6 +932,45 @@ namespace amf {
       }
     }
 
+    const bool adaptive_quantization_supported_after_init =
+      lifecycle::rate_control_supports_adaptive_quantization(config.rc_mode);
+    if (!adaptive_quantization_supported_after_init) {
+      if (video_format == 2) {
+        amf_int64 applied_aq_mode = AMF_VIDEO_ENCODER_AV1_AQ_MODE_CAQ;
+        const auto aq_result = encoder->GetProperty(AMF_VIDEO_ENCODER_AV1_AQ_MODE, &applied_aq_mode);
+        if (aq_result != AMF_OK || applied_aq_mode != AMF_VIDEO_ENCODER_AV1_AQ_MODE_NONE) {
+          BOOST_LOG(error) << "AMF: driver enabled AV1 adaptive quantization with CQP after Init"
+                           << " (applied=" << applied_aq_mode << ", result=" << aq_result << ')';
+          return false;
+        }
+      } else {
+        const wchar_t *vbaq_property = video_format == 0 ? AMF_VIDEO_ENCODER_ENABLE_VBAQ :
+                                                          AMF_VIDEO_ENCODER_HEVC_ENABLE_VBAQ;
+        amf_bool applied_vbaq = true;
+        const auto vbaq_result = encoder->GetProperty(vbaq_property, &applied_vbaq);
+        if (vbaq_result != AMF_OK || static_cast<bool>(applied_vbaq)) {
+          BOOST_LOG(error) << "AMF: driver enabled VBAQ with CQP after Init"
+                           << " (applied=" << static_cast<bool>(applied_vbaq)
+                           << ", result=" << vbaq_result << ')';
+          return false;
+        }
+      }
+    }
+
+    {
+      const wchar_t *skip_frame_property = video_format == 0 ? AMF_VIDEO_ENCODER_RATE_CONTROL_SKIP_FRAME_ENABLE :
+                                             video_format == 1 ? AMF_VIDEO_ENCODER_HEVC_RATE_CONTROL_SKIP_FRAME_ENABLE :
+                                                                 AMF_VIDEO_ENCODER_AV1_RATE_CONTROL_SKIP_FRAME;
+      amf_bool applied_skip_frame = true;
+      const auto skip_frame_result = encoder->GetProperty(skip_frame_property, &applied_skip_frame);
+      if (skip_frame_result != AMF_OK || static_cast<bool>(applied_skip_frame)) {
+        BOOST_LOG(error) << "AMF: driver changed the requested rate-control frame-skipping state after Init"
+                         << " (requested=false, applied=" << static_cast<bool>(applied_skip_frame)
+                         << ", result=" << skip_frame_result << ')';
+        return false;
+      }
+    }
+
     if (config.qvbr_quality_level && config.rc_mode && *config.rc_mode == 4) {
       const wchar_t *qvbr_quality_property = video_format == 0 ? AMF_VIDEO_ENCODER_QVBR_QUALITY_LEVEL :
                                                video_format == 1 ? AMF_VIDEO_ENCODER_HEVC_QVBR_QUALITY_LEVEL :
@@ -886,6 +982,36 @@ namespace amf {
                          << " (requested=" << *config.qvbr_quality_level << ", applied=" << applied_qvbr_quality
                          << ", result=" << qvbr_result << ')';
         return false;
+      }
+    }
+
+    // INPUT_QUEUE_SIZE is a static encoder property. Read back the value after
+    // Init because it determines how many external textures AMF may own at once.
+    // An explicit setting must survive Init; for the driver default, use the
+    // applied value to size the lazy direct-render pool accurately.
+    {
+      const wchar_t *input_queue_property = video_format == 0 ? AMF_VIDEO_ENCODER_INPUT_QUEUE_SIZE :
+                                              video_format == 1 ? AMF_VIDEO_ENCODER_HEVC_INPUT_QUEUE_SIZE :
+                                                                  AMF_VIDEO_ENCODER_AV1_INPUT_QUEUE_SIZE;
+      amf_int64 applied_input_queue_size = 0;
+      const auto queue_result = encoder->GetProperty(input_queue_property, &applied_input_queue_size);
+      const bool valid_queue_size = queue_result == AMF_OK &&
+                                    applied_input_queue_size >= 1 &&
+                                    applied_input_queue_size <= static_cast<amf_int64>(lifecycle::maximum_amf_input_queue_size);
+      if (config.input_queue_size &&
+          (!valid_queue_size || applied_input_queue_size != *config.input_queue_size)) {
+        BOOST_LOG(error) << "AMF: driver changed the requested input queue size after Init"
+                         << " (requested=" << *config.input_queue_size
+                         << ", applied=" << applied_input_queue_size
+                         << ", result=" << queue_result << ')';
+        return false;
+      }
+      if (valid_queue_size) {
+        encoder_input_queue_size = static_cast<std::size_t>(applied_input_queue_size);
+      } else {
+        encoder_input_queue_size = lifecycle::default_amf_input_queue_size;
+        BOOST_LOG(warning) << "AMF: could not read the applied input queue size; reserving for the documented default of "
+                           << encoder_input_queue_size;
       }
     }
 
@@ -904,8 +1030,17 @@ namespace amf {
                                                      AMF_VIDEO_ENCODER_AV1_QUERY_TIMEOUT;
       amf_int64 qt_val = 0;
       auto qt_res = encoder->GetProperty(qt_prop, &qt_val);
-      query_timeout_supported = (qt_res == AMF_OK && qt_val > 0);
+      query_timeout_supported = qt_res == AMF_OK && qt_val > 0;
       BOOST_LOG(info) << "AMF: QUERY_TIMEOUT " << (query_timeout_supported ? "supported" : "not supported") << " (value=" << qt_val << ")";
+    }
+
+    if (video_format == 2) {
+      amf_int64 applied_latency_mode = -1;
+      const auto latency_result = encoder->GetProperty(
+        AMF_VIDEO_ENCODER_AV1_ENCODING_LATENCY_MODE,
+        &applied_latency_mode);
+      BOOST_LOG(debug) << "AMF: applied AV1 encoding latency mode=" << applied_latency_mode
+                       << " (result=" << latency_result << ')';
     }
 
     // Create the rotating textures that are both render targets and native AMF
@@ -923,33 +1058,29 @@ namespace amf {
         break;
     }
 
-    D3D11_TEXTURE2D_DESC desc = {};
-    desc.Width = client_config.width;
-    desc.Height = client_config.height;
-    desc.MipLevels = 1;
-    desc.ArraySize = 1;
-    desc.Format = dxgi_fmt;
-    desc.SampleDesc.Count = 1;
-    desc.Usage = D3D11_USAGE_DEFAULT;
-    desc.BindFlags = D3D11_BIND_RENDER_TARGET;
+    input_surface_desc = {};
+    input_surface_desc.Width = client_config.width;
+    input_surface_desc.Height = client_config.height;
+    input_surface_desc.MipLevels = 1;
+    input_surface_desc.ArraySize = 1;
+    input_surface_desc.Format = dxgi_fmt;
+    input_surface_desc.SampleDesc.Count = 1;
+    input_surface_desc.Usage = D3D11_USAGE_DEFAULT;
+    input_surface_desc.BindFlags = D3D11_BIND_RENDER_TARGET;
 
-    // AMF reads this GUID off the texture to pick which slice of a texture array to
-    // encode (FFmpeg sets it the same way). Ours is a single-slice texture and the
-    // index never changes, so stamp it once here instead of on every frame.
-    static const GUID AMFTextureArrayIndexGUID = { 0x28115527, 0xe7c3, 0x4b66, { 0x99, 0xd3, 0x4f, 0x2a, 0xe6, 0xb4, 0x7f, 0xaf } };
-    int array_index = 0;
     for (auto &slot : input_surface_ring) {
-      const auto hr = device->CreateTexture2D(&desc, nullptr, slot.texture.ReleaseAndGetAddressOf());
-      if (FAILED(hr)) {
-        BOOST_LOG(error) << "AMF: failed to create input surface ring texture, HRESULT: 0x" << std::hex << hr;
-        return false;
-      }
-      slot.texture->SetPrivateData(AMFTextureArrayIndexGUID, sizeof(array_index), &array_index);
+      slot.texture.Reset();
       slot.frame_index = 0;
       slot.state = input_surface_state_e::free;
       slot.release_notified = false;
     }
     next_input_surface_slot = 0;
+    active_input_surface_count = lifecycle::input_surface_count_for_pipeline(
+      static_cast<int>(encoder_input_queue_size),
+      preanalysis_lookahead_depth);
+    if (!ensure_input_surface_count(active_input_surface_count)) {
+      return false;
+    }
     prepared_input_surface_slot.reset();
     last_rendered_input_surface_slot.reset();
 
@@ -967,20 +1098,26 @@ namespace amf {
     for (auto &fi : ltr_slot_frame_index) fi = 0;
     current_ltr_slot = 0;
     rfi_pending = false;
-    hwsurfaces_in_queue = 0;
+    input_surfaces_in_flight = 0;
+    accepted_input_count = 0;
+    completed_output_count = 0;
     consecutive_submit_failures = 0;
     consecutive_surface_failures = 0;
     consecutive_query_failures = 0;
+    consecutive_output_failures = 0;
     consecutive_catchup_misses = 0;
     last_output_progress = std::chrono::steady_clock::now();
+    submit_backpressure_started = {};
     completed_outputs.clear();
     frame_rfi_flags.clear();
     last_completed_frame_index = 0;
     last_submitted_frame_index = 0;
-    has_completed_output = false;
     output_fatal = false;
     drain_requested = false;
     drain_complete = false;
+    output_poll_requested = false;
+    active_output_poll_waiters = 0;
+    catchup_batch_count = 0;
 
     output_thread = std::jthread([this](std::stop_token stop_token) {
       output_pump(stop_token);
@@ -994,6 +1131,8 @@ namespace amf {
                     << client_config.framerate << "fps, LTR=" << max_ltr_frames
                     << ", PA=" << (preanalysis_enabled ? "on" : "off")
                     << ", lookahead=" << preanalysis_lookahead_depth
+                    << ", input_queue=" << encoder_input_queue_size
+                    << ", input_surfaces=" << active_input_surface_count
                     << ", slices=" << client_config.slicesPerFrame << ")";
     return true;
   }
@@ -1025,17 +1164,26 @@ namespace amf {
       last_rendered_input_surface_slot.reset();
       completed_outputs.clear();
       frame_rfi_flags.clear();
-      hwsurfaces_in_queue = 0;
+      input_surfaces_in_flight = 0;
+      accepted_input_count = 0;
+      completed_output_count = 0;
       last_completed_frame_index = 0;
       last_submitted_frame_index = 0;
-      has_completed_output = false;
       output_fatal = false;
       drain_requested = false;
       drain_complete = false;
+      output_poll_requested = false;
+      active_output_poll_waiters = 0;
+      catchup_batch_count = 0;
+      consecutive_output_failures = 0;
     }
     last_output_progress = {};
+    submit_backpressure_started = {};
     preanalysis_enabled = false;
     preanalysis_lookahead_depth = 0;
+    query_timeout_supported = false;
+    encoder_input_queue_size = lifecycle::default_amf_input_queue_size;
+    input_surface_desc = {};
 
     if (amf_dll) {
       FreeLibrary(amf_dll);
@@ -1055,15 +1203,6 @@ namespace amf {
     if (output_pts >= 0) {
       result.frame_index = static_cast<uint64_t>(output_pts);
     }
-    auto rfi_flag = frame_rfi_flags.find(result.frame_index);
-    if (rfi_flag != frame_rfi_flags.end()) {
-      result.after_ref_frame_invalidation = rfi_flag->second;
-      frame_rfi_flags.erase(rfi_flag);
-    }
-    while (frame_rfi_flags.size() > 256) {
-      frame_rfi_flags.erase(frame_rfi_flags.begin());
-    }
-
     ::amf::AMFBufferPtr buffer(output_data);
     if (!buffer) {
       BOOST_LOG(error) << "AMF: output is not a buffer";
@@ -1074,11 +1213,19 @@ namespace amf {
     auto data_ptr = static_cast<uint8_t *>(buffer->GetNative());
     auto data_size = buffer->GetSize();
     if (!data_ptr || data_size == 0) {
-      BOOST_LOG(error) << "AMF: output buffer has no encoded payload";
-      result.fatal = true;
+      BOOST_LOG(error) << "AMF: encoder returned an empty output buffer for frame " << result.frame_index;
       return result;
     }
     result.data.assign(data_ptr, data_ptr + data_size);
+
+    auto rfi_flag = frame_rfi_flags.find(result.frame_index);
+    if (rfi_flag != frame_rfi_flags.end()) {
+      result.after_ref_frame_invalidation = rfi_flag->second;
+      frame_rfi_flags.erase(rfi_flag);
+    }
+    while (frame_rfi_flags.size() > 256) {
+      frame_rfi_flags.erase(frame_rfi_flags.begin());
+    }
 
     amf_int64 output_type = 0;
     if (video_format == 0) {
@@ -1137,11 +1284,17 @@ namespace amf {
         {
           std::unique_lock lock(state_mutex);
           state_cv.wait(lock, [&]() {
-            return stop_token.stop_requested() || hwsurfaces_in_queue > 0 || drain_requested || output_fatal;
+            return stop_token.stop_requested() || output_poll_requested || drain_requested || output_fatal;
           });
           if (stop_token.stop_requested() || output_fatal) {
             break;
           }
+        }
+
+        uint64_t queried_through_input = 0;
+        {
+          std::lock_guard lock(state_mutex);
+          queried_through_input = accepted_input_count;
         }
 
         ::amf::AMFDataPtr output_data;
@@ -1154,14 +1307,15 @@ namespace amf {
           {
             std::lock_guard lock(state_mutex);
             auto encoded_frame = extract_encoded_frame(output_data);
-            if (hwsurfaces_in_queue > 0) {
-              --hwsurfaces_in_queue;
-            }
-            if (encoded_frame.fatal) {
-              output_fatal = true;
+            if (encoded_frame.data.empty()) {
+              if (++consecutive_output_failures >= max_consecutive_failures) {
+                BOOST_LOG(error) << "AMF: encoder repeatedly returned invalid output; signaling reinit";
+                output_fatal = true;
+              }
             } else {
+              consecutive_output_failures = 0;
+              ++completed_output_count;
               last_completed_frame_index = std::max(last_completed_frame_index, encoded_frame.frame_index);
-              has_completed_output = true;
               last_output_progress = std::chrono::steady_clock::now();
               consecutive_query_failures = 0;
               completed_outputs.emplace_back(std::move(encoded_frame));
@@ -1179,10 +1333,6 @@ namespace amf {
             if (!expected_eof) {
               BOOST_LOG(error) << "AMF: output pump reached EOF without a drain request";
               output_fatal = true;
-            } else if (hwsurfaces_in_queue != 0) {
-              BOOST_LOG(error) << "AMF: drain reached EOF with " << hwsurfaces_in_queue
-                               << " accepted input(s) missing output";
-              output_fatal = true;
             }
             drain_complete = expected_eof && !output_fatal;
           }
@@ -1190,23 +1340,41 @@ namespace amf {
           break;
         }
 
-        if (query_result == AMF_NEED_MORE_INPUT) {
-          std::unique_lock lock(state_mutex);
-          if (!drain_requested) {
-            const auto observed_in_flight = hwsurfaces_in_queue;
-            // A driver can change its internal readiness while a concurrent
-            // SubmitInput() is still returning backpressure, before our accepted
-            // input counter changes. Keep the wait bounded so QueryOutput is
-            // retried and the submit side cannot deadlock waiting for a poll.
-            state_cv.wait_for(lock, std::chrono::milliseconds(1), [&]() {
-              return stop_token.stop_requested() || output_fatal || drain_requested ||
-                     hwsurfaces_in_queue != observed_in_flight;
-            });
-            continue;
+        const bool no_output_available = query_result == AMF_OK ||
+                                         query_result == AMF_REPEAT ||
+                                         query_result == AMF_NEED_MORE_INPUT;
+        if (no_output_available) {
+          bool poll_disarmed = false;
+          {
+            std::lock_guard lock(state_mutex);
+            consecutive_query_failures = 0;
+            if (lifecycle::should_disarm_output_poll(
+                  queried_through_input,
+                  accepted_input_count,
+                  drain_requested,
+                  active_output_poll_waiters)) {
+              // No bounded waiter remains for this accepted generation. Sleep
+              // until a new input explicitly re-arms polling; an output that
+              // legitimately never arrives must not leave a permanent poll loop.
+              // Do not clear a re-arm from SubmitInput that raced this query.
+              output_poll_requested = false;
+              poll_disarmed = true;
+            }
           }
+          if (!poll_disarmed) {
+            // Drain, an active waiter, or a concurrent submission keeps polling
+            // armed. QUERY_TIMEOUT-backed OK/REPEAT calls already blocked for up
+            // to 1 ms. Some runtimes return NEED_MORE_INPUT immediately even from
+            // QueryOutput, so sleep for that defensive compatibility case rather
+            // than hot-spinning an above-normal-priority thread.
+            if (query_result == AMF_NEED_MORE_INPUT || !query_timeout_supported) {
+              std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+          }
+          continue;
         }
 
-        if (query_result != AMF_OK && query_result != AMF_REPEAT && query_result != AMF_NEED_MORE_INPUT) {
+        {
           bool fatal = false;
           {
             std::lock_guard lock(state_mutex);
@@ -1227,11 +1395,6 @@ namespace amf {
             state_cv.notify_all();
             break;
           }
-        }
-
-        // QUERY_TIMEOUT=1 blocks inside current runtimes. Older runtimes return
-        // immediately, so explicitly yield to the driver's completion workers.
-        if (!query_timeout_supported || query_result == AMF_REPEAT || query_result == AMF_NEED_MORE_INPUT) {
           std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
       }
@@ -1260,8 +1423,7 @@ namespace amf {
 
     std::size_t slot_index = 0;
     std::optional<std::size_t> duplicate_source_slot;
-    bool output_ready_before_submission = false;
-    uint64_t last_completed_before_submission = 0;
+    uint64_t completed_before_submission = 0;
     {
       std::unique_lock lock(state_mutex);
       auto drain_completed_outputs = [&]() {
@@ -1271,8 +1433,7 @@ namespace amf {
         }
       };
       drain_completed_outputs();
-      output_ready_before_submission = !results.empty();
-      last_completed_before_submission = last_completed_frame_index;
+      completed_before_submission = completed_output_count;
       if (output_fatal) {
         result.fatal = true;
         return result;
@@ -1290,9 +1451,22 @@ namespace amf {
         // and copy the last converted image there rather than starving lookahead.
         const auto source_slot = *last_rendered_input_surface_slot;
         auto find_repeat_slot = [&]() -> std::optional<std::size_t> {
-          return lifecycle::select_repeat_surface(input_surface_ring, source_slot, next_input_surface_slot);
+          return lifecycle::select_repeat_surface(
+            input_surface_ring,
+            source_slot,
+            next_input_surface_slot,
+            active_input_surface_count);
         };
         auto repeat_slot = find_repeat_slot();
+        if (!repeat_slot && !output_fatal && active_input_surface_count < input_surface_ring.size()) {
+          const auto expanded_count = active_input_surface_count + 1;
+          if (ensure_input_surface_count(expanded_count)) {
+            repeat_slot = active_input_surface_count;
+            active_input_surface_count = expanded_count;
+            BOOST_LOG(debug) << "AMF: expanded direct-render input pool to " << active_input_surface_count
+                             << " surfaces for repeated input";
+          }
+        }
         if (!repeat_slot) {
           state_cv.wait_for(lock, std::chrono::milliseconds(20), [&]() {
             return output_fatal || find_repeat_slot().has_value();
@@ -1317,7 +1491,7 @@ namespace amf {
         input_surface_ring[slot_index].state = input_surface_state_e::reserved;
         input_surface_ring[slot_index].release_notified = false;
         last_rendered_input_surface_slot = slot_index;
-        next_input_surface_slot = (slot_index + 1) % input_surface_ring.size();
+        next_input_surface_slot = (slot_index + 1) % active_input_surface_count;
       } else {
         BOOST_LOG(error) << "AMF: encode called before any input surface was rendered";
         result.fatal = true;
@@ -1357,7 +1531,10 @@ namespace amf {
     // producing output (or drop it without output), so recycle the texture only from
     // AMFSurfaceObserver::OnSurfaceDataRelease -- never by guessing from output PTS.
     ::amf::AMFSurfacePtr surface;
-    auto res = context->CreateSurfaceFromDX11Native(input_slot.texture.Get(), &surface, nullptr);
+    auto res = context->CreateSurfaceFromDX11Native(
+      input_slot.texture.Get(),
+      &surface,
+      &input_surface_release_observers[slot_index]);
     if (res != AMF_OK || !surface) {
       BOOST_LOG(error) << "AMF: CreateSurfaceFromDX11Native failed, error: " << res;
       const auto removed_reason = device->GetDeviceRemovedReason();
@@ -1371,8 +1548,6 @@ namespace amf {
       return result;
     }
     consecutive_surface_failures = 0;
-    surface->AddObserver(&input_surface_release_observers[slot_index]);
-
     // Set crop to actual frame dimensions (hw surfaces can be vertically aligned by 16)
     surface->SetCrop(0, 0, encode_width, encode_height);
     surface->SetPts(static_cast<amf_pts>(frame_index));
@@ -1539,6 +1714,11 @@ namespace amf {
       },
       [&]() {
         std::unique_lock lock(state_mutex);
+        // QueryOutput may have disarmed itself after AMF_NEED_MORE_INPUT. A full
+        // input queue is the opposite condition: queued work must be polled to
+        // make room before this exact surface can be retried.
+        output_poll_requested = true;
+        state_cv.notify_all();
         state_cv.wait_for(lock, std::chrono::milliseconds(1), [&]() {
           return output_fatal || !completed_outputs.empty();
         });
@@ -1548,15 +1728,13 @@ namespace amf {
       20);
     if (retryable_submit(res)) {
       int in_flight = 0;
-      std::chrono::steady_clock::time_point progress;
       {
         std::lock_guard lock(state_mutex);
         if (output_fatal) {
           result.fatal = true;
           return result;
         }
-        in_flight = hwsurfaces_in_queue;
-        progress = last_output_progress;
+        in_flight = static_cast<int>(input_surfaces_in_flight);
       }
       const char *reason = res == AMF_INPUT_FULL ? "AMF_INPUT_FULL" :
                            res == AMF_DECODER_NO_FREE_SURFACES ? "AMF_DECODER_NO_FREE_SURFACES" : "AMF_NEED_MORE_INPUT";
@@ -1564,8 +1742,22 @@ namespace amf {
                          << " after retries, dropping frame " << frame_index
                          << " (in_flight=" << in_flight << ")";
       const auto now = std::chrono::steady_clock::now();
-      if (in_flight > 0 && progress.time_since_epoch().count() != 0 && now - progress >= std::chrono::seconds(2)) {
-        BOOST_LOG(error) << "AMF: no output progress for 2 seconds under submit backpressure; signaling reinit";
+      const auto exhausted_submissions = ++consecutive_submit_failures;
+      if (submit_backpressure_started.time_since_epoch().count() == 0) {
+        submit_backpressure_started = now;
+      }
+      const auto backpressure_start_known = submit_backpressure_started.time_since_epoch().count() != 0;
+      const auto backpressure_duration = backpressure_start_known ?
+                                           now - submit_backpressure_started :
+                                           std::chrono::steady_clock::duration::zero();
+      if (lifecycle::submit_backpressure_requires_reinit(
+            exhausted_submissions,
+            max_consecutive_failures,
+            backpressure_start_known,
+            backpressure_duration)) {
+        BOOST_LOG(error) << "AMF: submit backpressure made no bounded progress; signaling reinit"
+                         << " (consecutive=" << exhausted_submissions
+                         << ", in_flight=" << in_flight << ')';
         result.fatal = true;
       }
       return result;
@@ -1588,21 +1780,33 @@ namespace amf {
       return result;
     }
     consecutive_submit_failures = 0;
+    submit_backpressure_started = {};
     result.input_accepted = true;
+
+    // Drop our wrapper reference immediately after acceptance. AMF retains its
+    // own reference for as long as it owns the native texture; keeping ours until
+    // the end of the bounded output wait would delay the observer callback and
+    // make an otherwise free texture look busy for another 20-50 ms.
+    surface = nullptr;
+
     std::unique_lock state_lock(state_mutex);
     const bool synchronously_released = lifecycle::on_input_accepted(input_slot, frame_index);
     last_submitted_frame_index = std::max(last_submitted_frame_index, frame_index);
+    ++accepted_input_count;
+    if (!synchronously_released) {
+      ++input_surfaces_in_flight;
+    }
+    output_poll_requested = true;
     if (synchronously_released) {
       state_cv.notify_all();
     }
     release_reserved_slot.disable();
     const int effective_lookahead_depth = preanalysis_enabled ? preanalysis_lookahead_depth : 0;
     const bool output_was_expected = lifecycle::delayed_output_is_expected(
-      hwsurfaces_in_queue,
+      accepted_input_count - 1,
       effective_lookahead_depth);
-    ++hwsurfaces_in_queue;
     const bool output_is_expected = lifecycle::delayed_output_is_expected(
-      hwsurfaces_in_queue,
+      accepted_input_count,
       effective_lookahead_depth);
     if (!output_was_expected && output_is_expected) {
       // Start the watchdog only after the PA lookahead is primed. At low minimum
@@ -1630,30 +1834,40 @@ namespace amf {
         frame_rfi_flags.emplace(recovered_frame_index, true);
       });
 
-    // Preserve the bounded catch-up behavior, but wait on the pump's condition
-    // variable rather than calling QueryOutput from the encode thread. With PA,
-    // the current input cannot complete until a future input arrives, so wait for
-    // any new pipeline output instead of imposing the full timeout every frame.
-    const auto frame_period = current_config.framerate > 0 ?
-                                std::chrono::milliseconds((1000 + current_config.framerate - 1) / current_config.framerate) :
-                                std::chrono::milliseconds(17);
-    const auto output_wait_budget = std::clamp(frame_period * 2, std::chrono::milliseconds(20), std::chrono::milliseconds(50));
-    const auto output_deadline = std::chrono::steady_clock::now() + output_wait_budget;
-    if (!output_ready_before_submission && output_is_expected && completed_outputs.empty()) {
-      state_cv.wait_until(state_lock, output_deadline, [&]() {
-        if (output_fatal || !completed_outputs.empty()) {
-          return true;
-        }
-        if (preanalysis_enabled) {
-          return has_completed_output && last_completed_frame_index > last_completed_before_submission;
-        }
-        return has_completed_output && last_completed_frame_index >= frame_index;
+    // AMD's sample and FFmpeg both submit while a separate thread polls output.
+    // Keep that poller alive for this short coalescing window: an early
+    // AMF_NEED_MORE_INPUT is only a point-in-time result and must not disarm the
+    // pump underneath the waiter. With no PA lookahead, wait through any older
+    // queued output until this submission completes; otherwise one initial miss
+    // becomes a permanent one-frame backlog.
+    const auto output_wait_budget = lifecycle::output_coalesce_budget(current_config.framerate);
+    bool coalesce_target_reached = lifecycle::output_coalesce_target_reached(
+      frame_index,
+      effective_lookahead_depth,
+      completed_before_submission,
+      completed_output_count,
+      last_completed_frame_index);
+    if (output_is_expected && !coalesce_target_reached) {
+      ++active_output_poll_waiters;
+      output_poll_requested = true;
+      state_cv.notify_all();
+      state_cv.wait_for(state_lock, output_wait_budget, [&]() {
+        return output_fatal || lifecycle::output_coalesce_target_reached(
+                                 frame_index,
+                                 effective_lookahead_depth,
+                                 completed_before_submission,
+                                 completed_output_count,
+                                 last_completed_frame_index);
       });
+      --active_output_poll_waiters;
+      state_cv.notify_all();
+      coalesce_target_reached = lifecycle::output_coalesce_target_reached(
+        frame_index,
+        effective_lookahead_depth,
+        completed_before_submission,
+        completed_output_count,
+        last_completed_frame_index);
     }
-    const bool reached_current_frame = has_completed_output && last_completed_frame_index >= frame_index;
-    const bool made_pipeline_progress = output_ready_before_submission ||
-                                        (has_completed_output && last_completed_frame_index > last_completed_before_submission) ||
-                                        !completed_outputs.empty();
     while (!completed_outputs.empty()) {
       results.emplace_back(std::move(completed_outputs.front()));
       completed_outputs.pop_front();
@@ -1662,16 +1876,18 @@ namespace amf {
       result.fatal = true;
     }
 
-    if (!output_is_expected || (preanalysis_enabled ? made_pipeline_progress : reached_current_frame)) {
+    if (!output_is_expected || coalesce_target_reached) {
       consecutive_catchup_misses = 0;
     } else if (++consecutive_catchup_misses % max_consecutive_failures == 0) {
       BOOST_LOG(warning) << "AMF: encoder output has not caught up for " << consecutive_catchup_misses
-                         << " submitted frames (in_flight=" << hwsurfaces_in_queue << ")";
+                         << " submitted frames (owned_surfaces=" << input_surfaces_in_flight
+                         << ", accepted=" << accepted_input_count
+                         << ", outputs=" << completed_output_count << ')';
     }
 
     const auto now = std::chrono::steady_clock::now();
     const bool output_still_expected = lifecycle::delayed_output_is_expected(
-      hwsurfaces_in_queue,
+      accepted_input_count,
       effective_lookahead_depth);
     if (output_still_expected && last_output_progress.time_since_epoch().count() != 0 &&
         now - last_output_progress >= std::chrono::seconds(2)) {
@@ -1679,9 +1895,10 @@ namespace amf {
       result.fatal = true;
     }
 
-    if (results.size() > 1) {
-      BOOST_LOG(debug) << "AMF: drained " << results.size() << " encoded frames in one catch-up batch through frame "
-                       << results.back().frame_index;
+    if (results.size() > 1 && ++catchup_batch_count % static_cast<uint64_t>(max_consecutive_failures) == 0) {
+      BOOST_LOG(debug) << "AMF: observed " << catchup_batch_count
+                       << " multi-frame catch-up batches; latest drained " << results.size()
+                       << " frames through frame " << results.back().frame_index;
     }
 
     return result;
@@ -1715,6 +1932,7 @@ namespace amf {
       }
       drain_requested = true;
       drain_complete = false;
+      output_poll_requested = true;
     }
     state_cv.notify_all();
 
@@ -1727,9 +1945,7 @@ namespace amf {
       },
       [&]() {
         std::unique_lock lock(state_mutex);
-        state_cv.wait_for(lock, std::chrono::milliseconds(1), [&]() {
-          return output_fatal || !completed_outputs.empty() || hwsurfaces_in_queue == 0;
-        });
+        state_cv.wait_for(lock, std::chrono::milliseconds(1));
         return output_fatal;
       },
       retryable_drain,
@@ -1742,6 +1958,7 @@ namespace amf {
     {
       std::lock_guard lock(state_mutex);
       drain_requested = false;
+      output_poll_requested = false;
     }
     state_cv.notify_all();
     BOOST_LOG(error) << "AMF: failed to begin delayed-output drain, error: " << drain_result;
@@ -1910,8 +2127,8 @@ namespace amf {
     }
 
     auto find_free_slot = [&]() -> std::optional<std::size_t> {
-      for (std::size_t offset = 0; offset < input_surface_ring.size(); ++offset) {
-        const auto slot = (next_input_surface_slot + offset) % input_surface_ring.size();
+      for (std::size_t offset = 0; offset < active_input_surface_count; ++offset) {
+        const auto slot = (next_input_surface_slot + offset) % active_input_surface_count;
         if (input_surface_ring[slot].state == input_surface_state_e::free) {
           return slot;
         }
@@ -1920,6 +2137,15 @@ namespace amf {
     };
 
     auto slot = find_free_slot();
+    if (!slot && !output_fatal && active_input_surface_count < input_surface_ring.size()) {
+      const auto expanded_count = active_input_surface_count + 1;
+      if (ensure_input_surface_count(expanded_count)) {
+        slot = active_input_surface_count;
+        active_input_surface_count = expanded_count;
+        BOOST_LOG(debug) << "AMF: expanded direct-render input pool to " << active_input_surface_count
+                         << " surfaces during driver backlog";
+      }
+    }
     if (!slot) {
       state_cv.wait_for(lock, std::chrono::milliseconds(20), [&]() {
         return output_fatal || find_free_slot().has_value();
@@ -1935,7 +2161,7 @@ namespace amf {
     input_surface_ring[*slot].frame_index = 0;
     input_surface_ring[*slot].release_notified = false;
     prepared_input_surface_slot = *slot;
-    next_input_surface_slot = (*slot + 1) % input_surface_ring.size();
+    next_input_surface_slot = (*slot + 1) % active_input_surface_count;
     return input_surface_ring[*slot].texture.Get();
   }
 
