@@ -2303,7 +2303,6 @@ namespace video {
     }
     const bool native_amf_session = dynamic_cast<amf_encode_session_t *>(session.get()) != nullptr;
     bool native_amf_runtime_failed = false;
-    bool force_sync_teardown = false;
 
     // As a workaround for NVENC hangs and to generally speed up encoder reinit,
     // we will complete the encoder teardown in a separate thread if supported.
@@ -2311,9 +2310,14 @@ namespace video {
     // to restart encoding as soon as possible. For cases where the NVENC driver
     // hang occurs, this thread may probably never exit, but it will allow
     // streaming to continue without requiring a full restart of Sunshine.
-    auto fail_guard = util::fail_guard([session_encoder, &session, &force_sync_teardown] {
-      if (force_sync_teardown) {
-        destroy_encode_session_bounded(session, "runtime failure"sv);
+    auto fail_guard = util::fail_guard([session_encoder, native_amf_session, &session, &native_amf_runtime_failed] {
+      // Keep native AMF teardown ordered with this encode loop. Its existing
+      // watchdog already moves driver destruction to a bounded worker; another
+      // detached layer lets the next stream race the old AMF session.
+      if (native_amf_session) {
+        destroy_encode_session_bounded(
+          session,
+          native_amf_runtime_failed ? "runtime failure"sv : "session end"sv);
         return;
       }
       if (session_encoder->flags & ASYNC_TEARDOWN) {
@@ -2327,7 +2331,7 @@ namespace video {
     });
 
     auto native_amf_failure = [&]() {
-      force_sync_teardown = native_amf_session;
+      native_amf_runtime_failed = native_amf_session;
       return native_amf_session;
     };
 
@@ -2496,9 +2500,6 @@ namespace video {
       }
 
       session->request_normal_frame();
-    }
-    if (native_amf_runtime_failed) {
-      force_sync_teardown = true;
     }
     return native_amf_init_fallback_used || native_amf_runtime_failed;
   }
