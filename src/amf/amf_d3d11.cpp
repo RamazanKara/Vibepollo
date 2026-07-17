@@ -648,8 +648,8 @@ namespace amf {
     // AMD's TranscodePipeline sample sets rate control before enabling PA because
     // PA property application can otherwise fail. Keep that dependency ordering
     // and verify the complete pair. A driver that rejects either property fails
-    // this native session so the upper layer can choose legacy AMF without
-    // silently changing modes.
+    // this native session and reports the unsupported native combination without
+    // silently changing modes or encoder implementations.
     const int requested_depth = preanalysis_plan.enabled ?
                                   std::max(1, config.pa_lookahead_depth.value_or(preanalysis_plan.lookahead_depth)) :
                                   0;

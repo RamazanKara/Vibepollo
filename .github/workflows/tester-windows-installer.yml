@@ -32,7 +32,11 @@ jobs:
       symbol_release_prefix: polo
       publish_symbols: false
       upload_symbols_artifact: false
-      require_signpath_signing: true
+      # Fork tester builds must remain usable when the upstream-only SignPath
+      # credential is unavailable. ci-windows still signs automatically when
+      # SIGNPATH_API_TOKEN is configured and records the unsigned state when it
+      # is not.
+      require_signpath_signing: false
       require_truehdr_runtime: true
     secrets:
       symbol_token: ${{ secrets.SYMBOL_TOKEN }}

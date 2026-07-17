@@ -3280,8 +3280,8 @@ namespace video {
                 !owned_encode_device->init_encoder(client_config, colorspace) ||
                 !owned_encode_device->finish_encoder_initialization(client_config, colorspace)) {
               // Failure destruction is part of this same watchdog interval. Only
-              // publish failure after the D3D/AMF resources are gone, so legacy
-              // fallback cannot race a still-unwinding native runtime.
+              // publish failure after the D3D/AMF resources are gone, so a later
+              // explicit rollback cannot race a still-unwinding native runtime.
               owned_encode_device.reset();
               handoff->publish(nullptr);
               return;
