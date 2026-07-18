@@ -1066,7 +1066,12 @@ namespace amf {
     input_surface_desc.Format = dxgi_fmt;
     input_surface_desc.SampleDesc.Count = 1;
     input_surface_desc.Usage = D3D11_USAGE_DEFAULT;
-    input_surface_desc.BindFlags = D3D11_BIND_RENDER_TARGET;
+    // PreAnalysis reads the converted input through its analysis shaders.  A
+    // render-target-only texture can be accepted by ordinary AMF modes but may
+    // stall or permanently backpressure QVBR/HQVBR/HQCBR on current Radeon
+    // drivers because no shader-resource view can be created for the input.
+    input_surface_desc.BindFlags = D3D11_BIND_RENDER_TARGET |
+                                   (preanalysis_enabled ? D3D11_BIND_SHADER_RESOURCE : 0);
 
     for (auto &slot : input_surface_ring) {
       slot.texture.Reset();
