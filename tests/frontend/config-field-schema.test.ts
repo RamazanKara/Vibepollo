@@ -54,24 +54,9 @@ describe('configFieldSchema', () => {
     ).toBe('checkbox');
   });
 
-  test('keeps the native AMF queue override on Auto by default', () => {
-    const field = getConfigFieldDefinition('amd_input_queue_size', {
-      ...baseContext,
-      defaultValue: 0,
-      currentValue: 0,
-    });
-
-    expect(field.kind).toBe('number');
-    expect(field.placeholder).toBe('0');
-    expect(field.min).toBe(0);
-  });
-
   test.each([
     'amd_quality',
     'amd_vbaq',
-    'amd_smart_access_video',
-    'amd_lowlatency_mode',
-    'amd_high_motion_quality_boost',
     'amd_av1_screen_content',
     'amd_av1_latency_mode',
   ])('renders %s as an auto-capable select', (settingKey) => {

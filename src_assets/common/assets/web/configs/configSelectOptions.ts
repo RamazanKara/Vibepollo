@@ -365,9 +365,6 @@ export function getConfigSelectOptions(
       ];
       return ensureIncludesCurrentValue(options, ctx.currentValue);
     }
-    case 'amd_smart_access_video':
-    case 'amd_lowlatency_mode':
-    case 'amd_high_motion_quality_boost':
     case 'amd_av1_screen_content': {
       const options = [
         { label: translateOr(t, 'config.amd_opt_auto', 'Auto'), value: 'auto' },
