@@ -102,7 +102,7 @@ namespace amf {
     output_pump(std::stop_token stop_token) noexcept;
 
     void
-    on_input_surface_released(std::size_t slot_index) noexcept;
+    on_input_surface_released(std::size_t slot_index, uint64_t generation) noexcept;
 
     bool
     ensure_input_surface_count(std::size_t count);
@@ -135,6 +135,10 @@ namespace amf {
     };
     struct input_surface_slot_t: lifecycle::input_surface_state_t {
       Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
+      // Bumped on every reservation; each AMF wrapper is stamped with the value
+      // it was created under so a stale OnSurfaceDataRelease from a previous
+      // wrapper can never recycle the slot's next occupant.
+      uint64_t generation = 0;
     };
     std::array<input_surface_slot_t, INPUT_SURFACE_RING_SIZE> input_surface_ring;
     std::array<input_surface_release_observer_t, INPUT_SURFACE_RING_SIZE> input_surface_release_observers;

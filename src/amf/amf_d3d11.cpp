@@ -40,22 +40,34 @@ namespace amf {
     destroy_encoder();
   }
 
+  // Stamped onto every AMF wrapper at creation; checked on release so a
+  // driver-delayed callback from an old wrapper cannot free the slot's next
+  // occupant while the VCN may still be reading it.
+  static const wchar_t *const kSlotGenerationProperty = L"VibepolloSlotGeneration";
+
   void AMF_STD_CALL
   amf_d3d11::input_surface_release_observer_t::OnSurfaceDataRelease(::amf::AMFSurface *surface) {
-    (void) surface;
+    amf_int64 generation = 0;
+    if (surface) {
+      surface->GetProperty(kSlotGenerationProperty, &generation);
+    }
     if (owner) {
-      owner->on_input_surface_released(slot_index);
+      owner->on_input_surface_released(slot_index, static_cast<uint64_t>(generation));
     }
   }
 
   void
-  amf_d3d11::on_input_surface_released(std::size_t slot_index) noexcept {
+  amf_d3d11::on_input_surface_released(std::size_t slot_index, uint64_t generation) noexcept {
     std::lock_guard lock(state_mutex);
     if (slot_index >= input_surface_ring.size()) {
       return;
     }
 
     auto &slot = input_surface_ring[slot_index];
+    if (generation != slot.generation) {
+      // Stale release from a wrapper of a previous reservation.
+      return;
+    }
     if (lifecycle::on_surface_released(slot)) {
       if (input_surfaces_in_flight > 0) {
         --input_surfaces_in_flight;
@@ -1554,6 +1566,7 @@ namespace amf {
         }
         input_surface_ring[slot_index].state = input_surface_state_e::reserved;
         input_surface_ring[slot_index].release_notified = false;
+        ++input_surface_ring[slot_index].generation;
         last_rendered_input_surface_slot = slot_index;
         next_input_surface_slot = (slot_index + 1) % active_input_surface_count;
       } else {
@@ -1615,6 +1628,9 @@ namespace amf {
     // Set crop to actual frame dimensions (hw surfaces can be vertically aligned by 16)
     surface->SetCrop(0, 0, encode_width, encode_height);
     surface->SetPts(static_cast<amf_pts>(frame_index));
+    // Reading the slot generation without the lock is safe: it only changes at
+    // re-reservation, which cannot happen while this thread holds the reservation.
+    surface->SetProperty(kSlotGenerationProperty, static_cast<amf_int64>(input_slot.generation));
 
     // Snapshot the recovery plan under the state lock, then release it before any
     // AMF call. SubmitInput may synchronously invoke OnSurfaceDataRelease(), which
@@ -2352,6 +2368,7 @@ namespace amf {
     input_surface_ring[*slot].state = input_surface_state_e::reserved;
     input_surface_ring[*slot].frame_index = 0;
     input_surface_ring[*slot].release_notified = false;
+    ++input_surface_ring[*slot].generation;
     prepared_input_surface_slot = *slot;
     next_input_surface_slot = (*slot + 1) % active_input_surface_count;
     return input_surface_ring[*slot].texture.Get();
