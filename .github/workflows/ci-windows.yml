@@ -72,7 +72,13 @@ on:
       signpath_signing_policy_slug:
         required: false
         type: string
-        default: test-signing
+        default: release-signing
+      signpath_wait_for_completion_timeout_in_seconds:
+        required: false
+        type: number
+        # Release signing requires manual approval, so leave time for the
+        # request to be approved and completed.
+        default: 20700
       signpath_artifact_configuration_slug:
         required: false
         type: string
@@ -696,6 +702,7 @@ jobs:
       - build_windows
     if: needs.build_windows.result == 'success'
     runs-on: windows-2022
+    timeout-minutes: 360
     outputs:
       signed_msi_artifact_id: ${{ steps.upload-signed-msi.outputs.artifact-id }}
     env:
@@ -720,7 +727,7 @@ jobs:
           github-artifact-id: ${{ needs.build_windows.outputs.unsigned_msi_signpath_artifact_id }}
           github-token: ${{ github.token }}
           wait-for-completion: true
-          wait-for-completion-timeout-in-seconds: 1800
+          wait-for-completion-timeout-in-seconds: ${{ inputs.signpath_wait_for_completion_timeout_in_seconds }}
           output-artifact-directory: signed-signpath-msi
           skip-decompress: true
 
@@ -865,6 +872,7 @@ jobs:
       - package_windows
     if: needs.package_windows.result == 'success'
     runs-on: windows-2022
+    timeout-minutes: 360
     outputs:
       signed_installer_artifact_id: ${{ steps.upload-signed-installer.outputs.artifact-id }}
     env:
@@ -889,7 +897,7 @@ jobs:
           github-artifact-id: ${{ needs.package_windows.outputs.unsigned_installer_signpath_artifact_id }}
           github-token: ${{ github.token }}
           wait-for-completion: true
-          wait-for-completion-timeout-in-seconds: 1800
+          wait-for-completion-timeout-in-seconds: ${{ inputs.signpath_wait_for_completion_timeout_in_seconds }}
           output-artifact-directory: signed-signpath
           skip-decompress: true
 
