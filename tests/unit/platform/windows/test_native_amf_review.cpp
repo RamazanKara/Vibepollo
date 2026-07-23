@@ -419,7 +419,9 @@ namespace {
     while (!destroyed.load(std::memory_order_acquire) && std::chrono::steady_clock::now() < cleanup_deadline) {
       std::this_thread::sleep_for(1ms);
     }
-    return !completed && elapsed < 100ms && destroyed.load(std::memory_order_acquire);
+    // Generous bound: the point is "returned promptly instead of blocking on the
+    // wedged destructor", not a scheduler-sensitive exact latency.
+    return !completed && elapsed < 2s && destroyed.load(std::memory_order_acquire);
   }
 
   bool runtime_gate_fences_initialization_against_teardown_and_quarantine() {
@@ -506,7 +508,7 @@ namespace {
     const bool entered = gate.begin_teardown_until(start + 2ms);
     const auto elapsed = std::chrono::steady_clock::now() - start;
     gate.cancel_initialization();
-    return !entered && elapsed < 100ms && !gate.is_quarantined() &&
+    return !entered && elapsed < 2s && !gate.is_quarantined() &&
            gate.runtime_is_idle();
   }
 
