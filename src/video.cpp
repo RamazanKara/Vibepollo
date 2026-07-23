@@ -1004,26 +1004,30 @@ namespace video {
     };
 
     void store_frame_timestamps(uint64_t frame_index, const frame_timestamps_t &ts) {
-      pending_timestamps[frame_index] = ts;
-      // Dropped frames never emit, so bound the map well above the real pipeline
-      // depth and evict the oldest (lowest-index) entries.
-      while (pending_timestamps.size() > 256) {
-        pending_timestamps.erase(pending_timestamps.begin());
-      }
+      // Fixed ring indexed by frame number: no per-frame heap traffic on the
+      // submit path. The capacity sits well above the real pipeline depth, and a
+      // collision only ever overwrites an entry 256 frames stale — one the old
+      // bounded map would have evicted anyway.
+      auto &slot = pending_timestamps[frame_index & (pending_timestamps.size() - 1)];
+      slot.frame_index = frame_index;
+      slot.valid = true;
+      slot.ts = ts;
     }
 
     frame_timestamps_t take_frame_timestamps(uint64_t frame_index) {
-      auto it = pending_timestamps.find(frame_index);
-      if (it == pending_timestamps.end()) {
+      auto &slot = pending_timestamps[frame_index & (pending_timestamps.size() - 1)];
+      if (!slot.valid || slot.frame_index != frame_index) {
         return {};
       }
-      frame_timestamps_t ts = it->second;
-      pending_timestamps.erase(it);
-      return ts;
+      slot.valid = false;
+      return slot.ts;
     }
 
     void discard_frame_timestamps(uint64_t frame_index) {
-      pending_timestamps.erase(frame_index);
+      auto &slot = pending_timestamps[frame_index & (pending_timestamps.size() - 1)];
+      if (slot.valid && slot.frame_index == frame_index) {
+        slot.valid = false;
+      }
     }
 
   private:
@@ -1034,7 +1038,15 @@ namespace video {
     bool fresh_conversion_pending = false;
     bool suppress_tail_flush_until_fresh_conversion = false;
     int64_t last_emitted_index = -1;
-    std::map<uint64_t, frame_timestamps_t> pending_timestamps;
+
+    struct pending_timestamp_slot_t {
+      uint64_t frame_index = 0;
+      bool valid = false;
+      frame_timestamps_t ts;
+    };
+
+    // Power-of-two size; indexed with frame_index & (size - 1).
+    std::array<pending_timestamp_slot_t, 256> pending_timestamps {};
   };
 
   // Sticky per-session HDR state, persists across capture reinits so a transient SDR
@@ -1397,7 +1409,12 @@ namespace video {
       {},
       "h264_amf"s,
     },
-    PARALLEL_ENCODING | REF_FRAMES_INVALIDATION  // flags
+    // ASYNC_TEARDOWN: healthy session ends and runtime bitrate rebuilds detach
+    // the bounded destruction worker instead of stalling the encode thread for
+    // 100-300 ms; the lifecycle gate serializes it against the next session's
+    // initialization. Shutdown, display reinit, and runtime fatals still force
+    // an ordered synchronous teardown via the fail-guard's sync conditions.
+    PARALLEL_ENCODING | REF_FRAMES_INVALIDATION | ASYNC_TEARDOWN  // flags
   };
 
   // Legacy FFmpeg-based AMF encoder. This is an explicit rollback target only;
@@ -3908,6 +3925,7 @@ namespace video {
       uint64_t pop_timeouts = 0;
       uint64_t gate_skipped = 0;
       uint64_t encoded = 0;
+      uint64_t dropped_submissions = 0;
       std::chrono::steady_clock::time_point last_log = std::chrono::steady_clock::now();
     } loop_stats;
 
@@ -3919,6 +3937,7 @@ namespace video {
                          << " pop_timeouts=" << loop_stats.pop_timeouts
                          << " gate_skipped=" << loop_stats.gate_skipped
                          << " encoded=" << loop_stats.encoded
+                         << " dropped_submissions=" << loop_stats.dropped_submissions
                          << " frame_nr=" << frame_nr;
         loop_stats = {};
         loop_stats.last_log = now;
@@ -4122,12 +4141,22 @@ namespace video {
         continue;
       }
 
-      if (encode(frame_nr++, *session, packets, channel_data, frame_timestamp, capture_timestamp, host_processing_timestamp)) {
+      if (encode(frame_nr, *session, packets, channel_data, frame_timestamp, capture_timestamp, host_processing_timestamp)) {
         BOOST_LOG(error) << "Could not encode video packet"sv;
         native_amf_runtime_failed = native_amf_session;
         break;
       }
       ++loop_stats.encoded;
+
+      if (!native_session || native_session->was_last_input_accepted()) {
+        ++frame_nr;
+      } else {
+        // Driver backpressure dropped this submission without emitting a packet.
+        // Reuse the index for the next capture so the wire frameIndex sequence
+        // stays contiguous; a gap reads as network loss to Moonlight and triggers
+        // spurious reference-invalidation exactly while the encoder is loaded.
+        ++loop_stats.dropped_submissions;
+      }
 
       if (placeholder_input) {
         // PA can accept the first placeholder while intentionally emitting
@@ -4903,8 +4932,16 @@ namespace video {
 
   int validate_config(std::shared_ptr<platf::display_t> disp, const encoder_t &encoder, const config_t &config) {
     const int max_attempts = config.videoFormat >= 1 ? 3 : 1;  // HEVC/AV1 can fail transiently during probing
-    constexpr auto probe_timeout = std::chrono::seconds {5};
-    constexpr int max_probe_submissions = 64;
+    // The tight submission/wall-clock bounds exist for AMF drivers that stall in
+    // INPUT_FULL; probing for every other encoder keeps the pre-existing limits
+    // so this AMD-only change cannot alter NVENC/QSV/software negotiation.
+#ifdef _WIN32
+    const bool amf_probe = &encoder == &amdvce || &encoder == &amdvce_legacy;
+#else
+    const bool amf_probe = false;
+#endif
+    const auto probe_timeout = amf_probe ? std::chrono::seconds {5} : std::chrono::seconds {60};
+    const int max_probe_submissions = amf_probe ? 64 : 256;
     const auto probe_start = std::chrono::steady_clock::now();
     const auto probe_deadline = probe_start + probe_timeout;
     const auto codec_name = [&]() -> std::string_view {
@@ -5030,7 +5067,7 @@ namespace video {
         return *result;
       }
 
-      if (attempt < max_attempts && std::chrono::steady_clock::now() < probe_deadline) {
+      if (attempt < max_attempts && (!amf_probe || std::chrono::steady_clock::now() < probe_deadline)) {
         BOOST_LOG(debug) << "Encoder probe: failed to validate "sv << codec_name << " config (attempt "sv
                          << attempt << "/" << max_attempts << "), retrying."sv;
         std::this_thread::sleep_for(std::chrono::milliseconds {50});
@@ -5439,6 +5476,16 @@ namespace video {
     BOOST_LOG(info);
 
     auto &encoder = *new_encoder;
+
+#ifdef _WIN32
+    if (encoder.name == "software"sv) {
+      // Software is probed last, so reaching it means every hardware encoder —
+      // including native AMF — failed validation. Make the degradation loud:
+      // an AMD user should never discover software encoding from stutter alone.
+      BOOST_LOG(error) << "No hardware encoder passed validation; the SOFTWARE encoder was selected."sv;
+      BOOST_LOG(error) << "If this system has an AMD GPU, hardware encoding is NOT active. Check the AMD driver and AMF runtime, or set encoder = amdvce_legacy to try the FFmpeg AMF fallback."sv;
+    }
+#endif
 
     last_encoder_probe_supported_ref_frames_invalidation = (encoder.flags & REF_FRAMES_INVALIDATION);
     last_encoder_probe_supported_yuv444_for_codec[0] = encoder.h264[encoder_t::PASSED] &&
