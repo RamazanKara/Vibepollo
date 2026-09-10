@@ -27,4 +27,4 @@ jobs:
       symbol_release_prefix: polo
       publish_symbols: false
       require_signpath_signing: false
-      require_truehdr_runtime: false
+      require_truehdr_runtime: true
