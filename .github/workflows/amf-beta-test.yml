@@ -1,0 +1,30 @@
+name: AMF beta test build
+permissions: {}
+
+on:
+  push:
+    branches: [codex/amf-low-latency-beta-2.0.0]
+  workflow_dispatch:
+
+concurrency:
+  group: amf-beta-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Unsigned beta installer with AMF latency changes
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/ci-windows.yml
+    with:
+      release_commit: ${{ github.sha }}
+      release_version: 2.0.0-beta.2-amf.1
+      build_only: false
+      build_tests: true
+      release_artifact_retention_days: 14
+      symbol_product_name: Vibepollo
+      symbol_release_prefix: polo
+      publish_symbols: false
+      require_signpath_signing: false
+      require_truehdr_runtime: false
